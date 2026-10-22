@@ -1,0 +1,54 @@
+# frozen_string_literal: true
+
+# Dedicated AIOps Guardian lab cluster. Separate VM names, host-only IPs and
+# cluster credentials from ../../../apple-silicon-kubernetes so the two labs
+# cannot collide. Local lab only; not for production use.
+
+KUBERNETES_MINOR = ENV.fetch("KUBERNETES_MINOR", "v1.36")
+BOX = ENV.fetch("VAGRANT_BOX", "bento/ubuntu-24.04")
+
+CONTROL_CPUS = ENV.fetch("K8S_CONTROL_CPUS", "2")
+CONTROL_MEMORY = ENV.fetch("K8S_CONTROL_MEMORY", "4096")
+WORKER_CPUS = ENV.fetch("K8S_WORKER_CPUS", "2")
+WORKER_MEMORY = ENV.fetch("K8S_WORKER_MEMORY", "3072")
+
+NODES = {
+  "aiops-control-plane" => { ip: "192.168.56.20", role: :control },
+  "aiops-worker-1"      => { ip: "192.168.56.21", role: :worker },
+  "aiops-worker-2"      => { ip: "192.168.56.22", role: :worker }
+}.freeze
+
+HOSTS = NODES.map { |name, settings| "#{settings[:ip]}=#{name}" }.freeze
+
+Vagrant.configure("2") do |config|
+  config.vm.box = BOX
+  config.vm.box_architecture = "arm64"
+  config.vm.boot_timeout = 600
+  config.ssh.keep_alive = true
+
+  NODES.each do |name, settings|
+    config.vm.define name, primary: settings[:role] == :control do |node|
+      node.vm.hostname = name
+      node.vm.network "private_network", ip: settings[:ip]
+
+      node.vm.provider "virtualbox" do |virtualbox|
+        virtualbox.name = name
+        virtualbox.cpus = settings[:role] == :control ? CONTROL_CPUS.to_i : WORKER_CPUS.to_i
+        virtualbox.memory = settings[:role] == :control ? CONTROL_MEMORY.to_i : WORKER_MEMORY.to_i
+      end
+
+      node.vm.provision "shell",
+        path: "scripts/common.sh",
+        args: [settings[:ip], KUBERNETES_MINOR, *HOSTS]
+
+      if settings[:role] == :control
+        node.vm.provision "shell",
+          path: "scripts/control-plane.sh",
+          args: [settings[:ip]]
+      else
+        node.vm.provision "shell",
+          path: "scripts/worker.sh"
+      end
+    end
+  end
+end

@@ -1,0 +1,14 @@
+services:
+  ministack:
+    image: ministackorg/ministack:1.5.31
+    container_name: aiops-guardian-ministack
+    ports:
+      - "127.0.0.1:4570:4570"
+    environment:
+      GATEWAY_PORT: "4570"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request as u; u.urlopen('http://localhost:4570/_ministack/health')\""]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: "no"

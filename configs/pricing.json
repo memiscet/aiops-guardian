@@ -1,0 +1,11 @@
+{
+  "pricing_version": "openai-2026-10-22.1",
+  "currency": "USD",
+  "as_of": "2026-10-22",
+  "source_url": "https://developers.openai.com/api/docs/models/gpt-4.1-mini",
+  "retrieved": "2026-10-22",
+  "note": "Estimates only: token counts times list prices. Not an invoice. Owner must confirm against the OpenAI billing dashboard.",
+  "models": {
+    "gpt-4.1-mini": {"input_per_million": 0.40, "cached_input_per_million": 0.10, "output_per_million": 1.60}
+  }
+}

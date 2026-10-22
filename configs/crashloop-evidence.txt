@@ -1,0 +1,8 @@
+Namespace: stage4-lab
+Pod: crash-demo-abc
+Container: demo
+State: Waiting
+Reason: CrashLoopBackOff
+Last termination: Exit Code 1
+Events: Back-off restarting failed container
+Previous logs: simulated missing config

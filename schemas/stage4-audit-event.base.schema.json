@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/stage4/audit-event.schema.json",
+  "title": "Stage 4 Workflow Audit Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "workflow_run_id",
+    "trace_id",
+    "workflow_id",
+    "workflow_version",
+    "step_id",
+    "event_type",
+    "status",
+    "started_at",
+    "ended_at",
+    "duration_ms"
+  ],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "event_id": { "type": "string", "minLength": 1 },
+    "causal_parent_event_id": { "type": ["string", "null"] },
+    "workflow_run_id": { "type": "string", "minLength": 1 },
+    "trace_id": { "type": "string", "minLength": 1 },
+    "workflow_id": { "type": "string", "minLength": 1 },
+    "workflow_version": { "type": "string", "minLength": 1 },
+    "step_id": { "type": "string", "minLength": 1 },
+    "agent_id": { "type": ["string", "null"] },
+    "agent_version": { "type": ["string", "null"] },
+    "event_type": {
+      "type": "string",
+      "enum": ["step", "model_call", "guardrail", "punch_out", "artifact", "workflow_terminal"]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["started", "passed", "failed", "error", "awaiting_human_approval", "approved_to_resume", "rejected_by_human", "cancelled"]
+    },
+    "failure_origin_step_id": { "type": ["string", "null"] },
+    "retry_number": { "type": "integer", "minimum": 0 },
+    "started_at": { "type": "string", "format": "date-time" },
+    "ended_at": { "type": "string", "format": "date-time" },
+    "duration_ms": { "type": "integer", "minimum": 0 },
+    "input_artifacts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/artifactReference" }
+    },
+    "output_artifacts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/artifactReference" }
+    },
+    "model_usage": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/modelUsage" }
+      ]
+    },
+    "guardrail": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/guardrailResult" }
+      ]
+    },
+    "punch_out": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/punchOutResult" }
+      ]
+    },
+    "error": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "category": { "type": "string" },
+        "code": { "type": "string" },
+        "message_redacted": { "type": "string" }
+      }
+    }
+  },
+  "$defs": {
+    "artifactReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["uri", "sha256"],
+      "properties": {
+        "uri": { "type": "string" },
+        "sha256": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" },
+        "media_type": { "type": "string" }
+      }
+    },
+    "modelUsage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "model", "input_tokens", "output_tokens", "cost", "currency", "pricing_version"],
+      "properties": {
+        "provider": { "type": "string" },
+        "model": { "type": "string" },
+        "model_version": { "type": ["string", "null"] },
+        "input_tokens": { "type": "integer", "minimum": 0 },
+        "cached_input_tokens": { "type": ["integer", "null"], "minimum": 0 },
+        "output_tokens": { "type": "integer", "minimum": 0 },
+        "reasoning_tokens": { "type": ["integer", "null"], "minimum": 0 },
+        "cost": { "type": "number", "minimum": 0 },
+        "currency": { "type": "string" },
+        "pricing_version": { "type": "string" }
+      }
+    },
+    "guardrailResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule_id", "rule_version", "result", "reason"],
+      "properties": {
+        "rule_id": { "type": "string" },
+        "rule_version": { "type": "string" },
+        "result": { "type": "string", "enum": ["pass", "fail", "error"] },
+        "reason": { "type": "string" }
+      }
+    },
+    "punchOutResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision_point_id", "decision", "bound_artifact_sha256"],
+      "properties": {
+        "decision_point_id": { "type": "string" },
+        "decision": { "type": "string", "enum": ["awaiting", "approved", "rejected", "expired"] },
+        "approver_role": { "type": ["string", "null"] },
+        "approval_reference": { "type": ["string", "null"] },
+        "bound_artifact_sha256": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" }
+      }
+    }
+  }
+}

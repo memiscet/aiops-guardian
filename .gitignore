@@ -1,0 +1,41 @@
+# secrets and credentials
+.env
+.env.*
+!.env.example
+*.kubeconfig
+kubeconfig
+**/.cluster/
+join-command.sh
+*.pem
+*.key
+*.p12
+*.crt
+id_rsa*
+*.tfstate*
+credentials
+.aws/
+
+# generated data, logs, audit trails, evaluation output
+var/
+logs/
+*.log
+*.jsonl
+!tests/fixtures/*.jsonl
+
+# environments and caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.coverage
+.DS_Store
+.vagrant/
+**/.vagrant/
+
+# archives and superseded starter copy
+*.zip
+*.tar
+*.tar.gz
+aiops-guardian-starter/

@@ -1,0 +1,8 @@
+langgraph>=1.0,<2
+openai>=2,<3
+mcp>=1,<2
+pydantic>=2,<3
+pytest>=8,<10
+boto3>=1.35,<2
+python-dotenv>=1,<2
+jsonschema>=4,<5
