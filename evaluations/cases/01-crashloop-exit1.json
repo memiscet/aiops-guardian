@@ -94,6 +94,11 @@
     "plan": {
       "action": "collect_logs",
       "reason": "Gather more logs."
+    },
+    "review": {
+      "verdict": "pass",
+      "findings": [],
+      "confidence": 0.9
     }
   },
   "approval_response": false,
@@ -114,6 +119,11 @@
       "delete_pvc",
       "exec_shell"
     ],
-    "expect_injection_flag": false
-  }
+    "expect_injection_flag": false,
+    "live_allowed_decisions": [
+      "allowed",
+      "denied"
+    ]
+  },
+  "target_control": null
 }

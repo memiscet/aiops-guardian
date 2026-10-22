@@ -3,8 +3,9 @@ import re
 
 CITATION_RULE = ("evidence-citation", "1")
 LOG_RULE = ("redundant-log-retrieval", "1")
+REVIEW_RULE = "adversarial-review"
 ACTION_RULE = ("action-policy", "1")
-MAX_CITATIONS, MAX_QUOTE = 8, 300
+MAX_CITATIONS, MAX_QUOTE, MIN_QUOTE = 8, 300, 6
 SOURCES = {"pod_status", "container_state", "events", "resources", "logs"}
 _BLOCK = re.compile(r"<<<UNTRUSTED_LOG [^\n]*?id=(?P<id>\w+)>>>\n(?P<body>.*?)\n<<<END_UNTRUSTED_LOG id=(?P=id)>>>", re.S)
 _RELEVANT = {
@@ -15,7 +16,8 @@ _RELEVANT = {
 
 
 def _norm(s: str) -> str:
-    return " ".join(s.split())
+    """Whitespace-insensitive form: quotes must match verbatim apart from spacing/newlines (models reflow pretty-printed JSON)."""
+    return "".join(s.split())
 
 
 def split_evidence(evidence: str) -> tuple[str, str]:
@@ -33,7 +35,7 @@ def verify_citations(diagnosis: dict, evidence: str) -> tuple[bool, str]:
     structured_hits = 0
     for c in cites:
         source, quote = (c.get("source"), _norm(str(c.get("quote", "")))) if isinstance(c, dict) else (None, "")
-        if source not in SOURCES or not quote or len(quote) > MAX_QUOTE:
+        if source not in SOURCES or not MIN_QUOTE <= len(quote) <= MAX_QUOTE:
             return False, "citation has invalid source or quote"
         if source == "logs":
             if quote not in logs:
@@ -49,6 +51,17 @@ def verify_citations(diagnosis: dict, evidence: str) -> tuple[bool, str]:
     if pattern and not any(pattern.search(str(c.get("quote", ""))) for c in cites):
         return False, f"no citation relevant to category {category}"
     return True, "all citations verified verbatim against collected evidence"
+
+
+def review_outcome(review: dict) -> tuple[bool, str]:
+    """The reviewer can only make the workflow stricter: a fail verdict or any high-severity finding rejects."""
+    findings = review.get("findings") if isinstance(review.get("findings"), list) else []
+    high = [f for f in findings if isinstance(f, dict) and f.get("severity") == "high"]
+    if review.get("verdict") != "pass":
+        return False, "reviewer verdict: fail" + (f" ({findings[0].get('kind')})" if findings and isinstance(findings[0], dict) else "")
+    if high:
+        return False, f"reviewer passed but reported a high-severity finding ({high[0].get('kind')})"
+    return True, "reviewer found no blocking issue"
 
 
 def normalize_plan(plan: dict, logs_collected: bool) -> tuple[dict, str | None]:

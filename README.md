@@ -50,7 +50,7 @@ python -m aiops.evaluation                      # offline gold cases (no API cal
 GUARDIAN_ALLOW_PAID_EVAL=yes python -m aiops.evaluation --live   # paid; bounded by configs/eval-limits.json; needs owner approval
 python scripts/check_secrets.py                 # run before every commit
 ```
-Every workflow run appends hash-chained events to `var/audit/events.jsonl` (git-ignored). Costs are estimates from `configs/pricing.json`, not billed amounts. See `docs/stage4-evidence.md` and `docs/DEVIN-HANDOFF.md`.
+Reports and events are also written to local MiniStack (S3/SQS on port 4570) unless `--no-publish` is given. Every workflow run appends hash-chained events to `var/audit/events.jsonl` (git-ignored). Costs are estimates from `configs/pricing.json`, not billed amounts. See `docs/stage4-evidence.md` and `docs/DEVIN-HANDOFF.md`.
 
 ## Stage 4 gaps and follow-up
 1. Capture per-step trace IDs, prompts versions, test IDs, cost estimates and outcomes in durable stores (e.g., Langfuse/OpenTelemetry).

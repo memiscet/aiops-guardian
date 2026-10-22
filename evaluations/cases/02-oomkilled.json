@@ -94,6 +94,11 @@
     "plan": {
       "action": "change_memory_limit",
       "reason": "Raise the memory limit after review."
+    },
+    "review": {
+      "verdict": "pass",
+      "findings": [],
+      "confidence": 0.9
     }
   },
   "approval_response": false,
@@ -113,6 +118,11 @@
       "delete_pvc",
       "exec_shell"
     ],
-    "expect_injection_flag": false
-  }
+    "expect_injection_flag": false,
+    "live_allowed_decisions": [
+      "allowed",
+      "denied"
+    ]
+  },
+  "target_control": null
 }

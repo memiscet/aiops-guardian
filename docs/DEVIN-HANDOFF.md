@@ -209,3 +209,56 @@ Commit `3dfec2a` on `master` (52 files, 4464 insertions): "Baseline: AIOps Guard
 3. Delete the `crash-demo` deployment when no longer needed (needs approval), or keep it for a live end-to-end run with the new guardrails: `python -m aiops.run --namespace stage4-lab --pod <pod>`.
 4. Add an adversarial-review agent and confirm the Stage 4 rubric (including whether the schema extension is acceptable).
 5. Integrate MiniStack S3 and SQS (port 4570) for report and event output.
+
+---
+
+# Milestone 4: live evaluation, adversarial reviewer, MiniStack output (2026-10-22)
+
+Requested by owner: rotate key (done by owner), approve bounded live evaluation, rerun live pod, delete `crash-demo`, add adversarial review agent, wire MiniStack S3/SQS. All done except confirming the Stage 4 rubric (not possible from here).
+
+## What changed
+- **Citation guardrail:** quotes now match whitespace-insensitively (still verbatim apart from spacing), with a minimum quote length of 6 non-space characters. Reason: the first live run (0/6) showed the model reflowing pretty-printed JSON. Diagnosis prompt bumped to `diagnosis-2026-10-22.3` (copy quotes exactly, from one line).
+- **Adversarial reviewer** (`aiops/workflow.py`, `aiops/guardrails.py`, `aiops/prompts.py`): new `review` node between plan and action policy, prompt `review-2026-10-22.1`, output `{verdict, findings[{kind, detail, severity}], confidence}`. A fail verdict or any high-severity finding rejects the run (`rejected_by_reviewer`, status `failed`, failure origin `review`). It can only tighten: it cannot override the action policy, and a blocked action stays blocked. It uses the same client by default; `build_graph(reviewer_llm=...)` allows a separate one (untested live).
+- **Reviewer probes** (`evaluations/review-probes.json`): three flawed outputs (plan that obeys log instructions; unsupported claims at 0.99 confidence; plan unrelated to diagnosis) and one sound control, run through the real graph with fixed diagnosis and plan so only the reviewer is under test. The report gives caught/controls counts.
+- **Evaluator fixes:** `live_allowed_decisions` (any safe outcome) for cases 05 and 06, and a `control_exercised` metric that says whether the targeted control (policy block, approval denial) actually triggered. Default limits raised to 24 calls and 80,000 tokens because each case now makes up to three calls plus four probe calls (cost limit unchanged at $0.10).
+- **MiniStack output** (`aiops/sinks.py`, wired in `aiops/run.py`, `publish` node): after the report, redacted `report.json`, `evidence.txt` and `audit-events.jsonl` go to `s3://aiops-guardian-evidence/incidents/<run_id>/` and one message goes to the `aiops-guardian-incidents` queue. Endpoint must be `http://localhost:4570`/`127.0.0.1:4570`; dummy credentials; `~/.aws`, `AWS_PROFILE` and `AWS_*` env endpoints are ignored (a test caught that botocore still honoured `AWS_PROFILE`; fixed with an isolated session). Publishing is non-fatal and audited (`publish` event). `python -m aiops.run --no-publish` disables it. The workflow publishes only if `MINISTACK_ENDPOINT` is set (it is in `.env.example`).
+
+## Live evaluation (bounded; owner approved)
+Command: `GUARDIAN_ALLOW_PAID_EVAL=yes python -m aiops.evaluation --live` (limits from `configs/eval-limits.json`). Results are tabulated in `docs/stage4-evidence.md` section 4. Summary: pre-fix run 0/6 (harness problem); intermediate runs 4/6, 4/6, 3/6 (flawed live expectations for cases 05/06 plus one misquote); final version three runs **4/6, 6/6, 5/6 (mean 0.833)**, 0 safety failures, 0 unsafe proposals, 0 errors; reviewer probes caught 3/3 flawed outputs and passed the control in every run; estimated cost $0.0283 for those three runs (49,559 input and 5,323 output tokens, 62 calls). Total estimated spend across all live runs this milestone is about $0.056 including the live pod run. These are estimates from `configs/pricing.json`; check the OpenAI dashboard for billed amounts. The final numbers are not held-out: guardrail, prompt and case expectations were adjusted after earlier failures, on the same six cases.
+
+## Live pod rerun (step 3)
+`python -m aiops.run --namespace stage4-lab --pod crash-demo-f447d8c99-pmrrx` (restricted reader identity; real MCP server; hosted model; input `no`). Result: category `app_exit_nonzero`, citations `CrashLoopBackOff`, `exitCode: 1`, two `BackOff` events (all verified verbatim against the evidence); plan `create_report` (the redundant `collect_logs` problem did not recur); reviewer pass; policy allowed; "allowed (dry run; no changes executed)". Model usage: diagnosis 1481 in / 185 out (3.0 s), planning 440 in / 93 out (1.3 s), review 1967 in / 17 out (1.8 s); estimated $0.0020. The diagnosis did not cite the log text this time (it cited status and events). Audit: 9 events for the run, hash chain verified over all 384 events in the file, every event valid against the extended schema and (after dropping extension fields) the unmodified base schema. MiniStack received the three S3 objects and one SQS message (the message is still in the queue).
+
+## Deleted
+`kubectl delete deployment crash-demo -n stage4-lab` on the Guardian cluster (admin kubeconfig, context and server confirmed first). The namespace now has no workloads; the `stage4-lab` namespace, `guardian-reader` service account, role and role binding were kept. No other namespace was touched.
+
+## Tests and checks
+```bash
+source .venv/bin/activate
+python -m compileall -q aiops tests     # OK
+python -m pytest -q                      # 124 passed (includes a MiniStack integration test)
+python -m aiops.evaluation               # offline: 6/6, reviewer probes 3/3 + control 1/1, safety_failures=0, 22 scripted calls
+python scripts/check_secrets.py          # no secrets found (55 files)
+```
+New or extended tests: reviewer behaviour in `test_workflow.py` (fail verdict, high-severity finding with pass verdict, reviewer cannot loosen policy, separate reviewer client, publish success and non-fatal failure), `test_guardrails.py` (whitespace-insensitive quotes, minimum length, review outcome), `test_evaluation.py` (probes, missed-probe reporting, live expectations), `test_sinks.py` (endpoint validation including wrong ports and real AWS hosts, isolation from AWS profile and env, redaction, error wrapping, live emulator round trip).
+
+## Side effects
+- Paid OpenAI calls: about 123 model calls in total this milestone (6 + 52 + 62 evaluation calls plus 3 for the live pod run) (evaluation runs, probes, one live pod run), est. $0.056.
+- MiniStack (Guardian instance only): evaluation runs wrote nothing; the live pod run and the integration test wrote and (for the test) deleted objects under `incidents/`; one real incident message remains in the queue.
+- Kubernetes: deleted the `crash-demo` deployment only.
+- New local data under `var/` (git-ignored): audit trail, evaluation reports.
+
+## Blockers and open items
+1. Official Stage 4 rubric still unconfirmed (including whether the audit-schema extension is acceptable and whether guardrails must be hook/sentinel files). Needs the owner or the course provider.
+2. Live results are small-sample and not held-out; a fresh case set (and more samples) is needed before claiming a rate.
+3. The live model never proposed a destructive or approval-required action, so policy block and approval denial are verified offline only. A live test would need evidence that genuinely tempts such actions.
+4. The reviewer and the other roles use the same model and client; independence is only prompt-level.
+5. Citation check is strict and cost the model 2 of 18 case-runs in the final live runs through misquoting; a cleaner evidence format could reduce this.
+6. Console approval is still unauthenticated; checkpoints are in memory; audit file is tamper-evident only.
+
+## Next steps
+1. Owner: confirm the rubric items listed in `docs/stage4-evidence.md`.
+2. Build a held-out evaluation set (different incidents, including ones that tempt destructive or approval-required remediation) and run it live with a fixed system version, several times.
+3. Add an authenticated, time-limited approval mechanism and durable checkpoints.
+4. Optionally run the reviewer on a different model (`reviewer_llm`) and measure the difference.
+5. Create OOMKilled and ImagePullBackOff manifests and run them live end to end (needs approval).

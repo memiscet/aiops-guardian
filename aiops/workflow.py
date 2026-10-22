@@ -11,8 +11,8 @@ from openai import OpenAI
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import interrupt
-from .audit import NullAudit, model_usage, now
-from .guardrails import ACTION_RULE, CITATION_RULE, LOG_RULE, normalize_plan, verify_citations
+from .audit import NullAudit, model_usage, now, read_events
+from .guardrails import ACTION_RULE, CITATION_RULE, LOG_RULE, REVIEW_RULE, normalize_plan, review_outcome, verify_citations
 from .policy import decide
 from .pricing import Pricing, load_pricing
 from .prompts import prompt
@@ -39,6 +39,18 @@ class Plan(BaseModel):
     reason: str
 
 
+class Finding(BaseModel):
+    kind: Literal["unsupported_claim", "plan_diagnosis_mismatch", "followed_log_instructions", "unsafe_action", "overconfident", "other"]
+    detail: str
+    severity: Literal["low", "medium", "high"]
+
+
+class Review(BaseModel):
+    verdict: Literal["pass", "fail"]
+    findings: list[Finding]
+    confidence: float
+
+
 class State(TypedDict, total=False):
     namespace: str
     pod: str
@@ -48,11 +60,14 @@ class State(TypedDict, total=False):
     diagnosis: dict
     diagnosis_ok: bool
     plan: dict
+    review: dict
+    review_ok: bool
     policy: str
     approved: bool
     decision: str
     result: str
     usage: list[dict]
+    publish: dict
 
 
 class LLM:
@@ -87,18 +102,20 @@ def _derive_logs_collected(evidence: str) -> bool:
     return bool(re.search(r"<<<UNTRUSTED_LOG|Previous logs:", evidence)) and "no logs available" not in evidence
 
 
-def build_graph(llm=None, audit=None, pricing: Pricing | None = None, max_attempts: int = 1):
+def build_graph(llm=None, audit=None, pricing: Pricing | None = None, max_attempts: int = 1, reviewer_llm=None, sink=None):
     llm = llm or LLM()
+    reviewer_llm = reviewer_llm or llm
     audit = audit or NullAudit()
     pricing = pricing or load_pricing()
 
-    def model_step(step: str, step_id: str, agent: str, schema, content: str):
+    def model_step(step: str, step_id: str, agent: str, schema, content: str, client=None):
+        client = client or llm
         text, version, sha = prompt(step)
         inputs = [audit.artifact({"prompt_version": version, "prompt_sha256": sha, "input": content})]
         for attempt in range(max_attempts):
             t0, started = time.perf_counter(), now()
             try:
-                parsed, usage = llm.parse(schema, text, content)
+                parsed, usage = client.parse(schema, text, content)
             except Exception as exc:
                 category = "budget" if type(exc).__name__ == "BudgetExceeded" else "model_api"
                 audit.event(step_id, "model_call", "error", started=started, agent_id=agent, agent_version=version, inputs=inputs,
@@ -138,6 +155,19 @@ def build_graph(llm=None, audit=None, pricing: Pricing | None = None, max_attemp
                         guardrail={"rule_id": LOG_RULE[0], "rule_version": LOG_RULE[1], "result": "fail", "reason": note})
         return {"plan": parsed, "usage": s["usage"] + [{"step": "planning", **usage}]}
 
+    def review(s: State):
+        content = json.dumps({"evidence": s["evidence"], "diagnosis": s["diagnosis"], "plan": s["plan"],
+                              "logs_already_collected": s["logs_collected"]})
+        parsed, usage = model_step("review", "review", "adversarial-reviewer", Review, content, reviewer_llm)
+        ok, reason = review_outcome(parsed)
+        audit.event("review", "guardrail", "passed" if ok else "failed", failure_origin=None if ok else "review",
+                    inputs=[audit.artifact(parsed)],
+                    guardrail={"rule_id": REVIEW_RULE, "rule_version": usage["prompt_version"], "result": "pass" if ok else "fail", "reason": reason})
+        return {"review": parsed, "review_ok": ok, "usage": s["usage"] + [{"step": "review", **usage}]}
+
+    def after_review(s: State):
+        return "policy" if s["review_ok"] else "report"
+
     def policy(s: State):
         decision = decide(s["plan"]["action"], s["namespace"])
         blocked = decision == "blocked"
@@ -171,6 +201,8 @@ def build_graph(llm=None, audit=None, pricing: Pricing | None = None, max_attemp
     def report(s: State):
         if not s["diagnosis_ok"]:
             decision, result, origin = "rejected_by_guardrail", "rejected: diagnosis failed evidence verification", "analyze"
+        elif not s["review_ok"]:
+            decision, result, origin = "rejected_by_reviewer", "rejected: adversarial review failed", "review"
         elif s["policy"] == "blocked":
             decision, result, origin = "blocked", "blocked by policy", "plan"
         elif s["policy"] == "approval_required" and s.get("approved"):
@@ -183,16 +215,37 @@ def build_graph(llm=None, audit=None, pricing: Pricing | None = None, max_attemp
         audit.event("report", "workflow_terminal", status, failure_origin=origin, outputs=[audit.artifact({"decision": decision, "result": result})])
         return {"decision": decision, "result": result}
 
+    def publish(s: State):
+        if sink is None:
+            return {}
+        started = now()
+        report_doc = {"run_id": audit.run_id, "namespace": s["namespace"], "pod": s["pod"], "decision": s["decision"], "result": s["result"],
+                      "diagnosis": s.get("diagnosis"), "plan": s.get("plan"), "review": s.get("review"),
+                      "usage": s.get("usage"), "prompt_versions": {k: prompt(k)[1] for k in ("diagnosis", "planning", "review")},
+                      "note": "dry run; no cluster changes executed"}
+        events = read_events(audit.path) if hasattr(audit, "path") else []
+        try:
+            refs = sink.publish(audit.run_id, report_doc, s["evidence"], [e for e in events if e["workflow_run_id"] == audit.run_id])
+        except Exception as exc:
+            audit.event("publish", "artifact", "error", started=started, failure_origin="publish",
+                        error={"category": "sink", "code": type(exc).__name__, "message_redacted": str(exc)})
+            return {"publish": {"status": "error"}}
+        audit.event("publish", "artifact", "passed", started=started,
+                    outputs=[audit.artifact({"objects": refs["objects"], "message_id": refs["message_id"], "queue": refs["queue"], "endpoint": refs["endpoint"]})])
+        return {"publish": {"status": "ok", **refs}}
+
     graph = StateGraph(State)
-    for name, fn in [("analyze", analyze), ("verify", verify), ("plan", plan), ("policy", policy),
-                     ("approval_request", approval_request), ("approval", approval), ("report", report)]:
+    for name, fn in [("analyze", analyze), ("verify", verify), ("plan", plan), ("review", review), ("policy", policy),
+                     ("approval_request", approval_request), ("approval", approval), ("report", report), ("publish", publish)]:
         graph.add_node(name, fn)
     graph.add_edge(START, "analyze")
     graph.add_edge("analyze", "verify")
     graph.add_conditional_edges("verify", after_verify)
-    graph.add_edge("plan", "policy")
+    graph.add_edge("plan", "review")
+    graph.add_conditional_edges("review", after_review)
     graph.add_conditional_edges("policy", route)
     graph.add_edge("approval_request", "approval")
     graph.add_edge("approval", "report")
-    graph.add_edge("report", END)
+    graph.add_edge("report", "publish")
+    graph.add_edge("publish", END)
     return graph.compile(checkpointer=InMemorySaver())

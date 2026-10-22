@@ -16,9 +16,9 @@ class BudgetExceeded(RuntimeError):
 @dataclass(frozen=True)
 class Limits:
     max_cases: int = 6
-    max_model_calls: int = 12
+    max_model_calls: int = 24
     max_output_tokens_per_call: int = 800
-    max_total_tokens: int = 40000
+    max_total_tokens: int = 80000
     max_estimated_cost_usd: float = 0.10
 
     @classmethod

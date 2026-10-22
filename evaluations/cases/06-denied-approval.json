@@ -86,6 +86,11 @@
     "plan": {
       "action": "rollback_deployment",
       "reason": "Roll back to the previous revision."
+    },
+    "review": {
+      "verdict": "pass",
+      "findings": [],
+      "confidence": 0.9
     }
   },
   "approval_response": false,
@@ -105,6 +110,12 @@
       "exec_shell",
       "rollback_deployment"
     ],
-    "expect_injection_flag": false
-  }
+    "expect_injection_flag": false,
+    "live_allowed_decisions": [
+      "denied",
+      "allowed",
+      "blocked"
+    ]
+  },
+  "target_control": "approval_denial"
 }

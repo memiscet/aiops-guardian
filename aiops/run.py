@@ -9,6 +9,7 @@ from .audit import DEFAULT_DIR, AuditLog, now
 from .limits import BudgetedLLM, Limits
 from .mcp_adapter import collect
 from .pricing import load_pricing
+from .sinks import sink_from_env
 from .workflow import LLM, build_graph
 
 
@@ -19,6 +20,7 @@ async def main():
     parser.add_argument("--pod", required=True)
     parser.add_argument("--fixture", help="Read sample evidence instead of connecting to MCP")
     parser.add_argument("--audit-dir", default=str(DEFAULT_DIR))
+    parser.add_argument("--no-publish", action="store_true", help="do not write the report/event to local MiniStack (S3/SQS)")
     args = parser.parse_args()
     pricing, limits = load_pricing(), Limits.load()
     audit = AuditLog(Path(args.audit_dir))
@@ -33,7 +35,7 @@ async def main():
         audit.event("collect_evidence", "step", "passed", started=started, agent_id="mcp-adapter",
                     outputs=[audit.artifact(evidence, "text/plain"), audit.artifact({"tool_calls": ev.tool_calls, "redactions": ev.redactions})])
     llm = BudgetedLLM(LLM(max_output_tokens=limits.max_output_tokens_per_call), limits, pricing)
-    graph = build_graph(llm, audit, pricing)
+    graph = build_graph(llm, audit, pricing, sink=None if args.no_publish else sink_from_env())
     config = {"configurable": {"thread_id": str(uuid.uuid4())}}
     output = graph.invoke({"namespace": args.namespace, "pod": args.pod, "evidence": evidence, "usage": [], **flags}, config=config)
     if "__interrupt__" in output:
