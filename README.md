@@ -63,3 +63,4 @@ Reports and events are also written to local MiniStack (S3/SQS on port 4570) unl
 
 ## Security reminders
 Never put real secrets in simulated logs. `.env` must remain untracked. The current approval terminal input is for demonstration, **not production-grade identity/authorization**.
+# aiops-guardian
