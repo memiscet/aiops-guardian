@@ -1,0 +1,536 @@
+{
+ "component": "category_selection_rule",
+ "version": "1",
+ "step": "diagnosis",
+ "goal": "The category field agrees with the root-cause text and follows the cause, not the symptom.",
+ "threshold": 0.95,
+ "cases": [
+  {
+   "id": "g1",
+   "pod": "cg-pod-aaa11",
+   "mcp": {
+    "describe_pod": {
+     "metadata": {
+      "name": "cg-pod-aaa11",
+      "namespace": "stage4-lab"
+     },
+     "spec": {
+      "containers": [
+       {
+        "name": "app",
+        "image": "busybox:1.36",
+        "resources": {}
+       }
+      ]
+     },
+     "status": {
+      "phase": "Pending",
+      "conditions": [
+       {
+        "type": "Ready",
+        "status": "False",
+        "reason": "ContainersNotReady"
+       }
+      ],
+      "container_statuses": [
+       {
+        "name": "app",
+        "image": "busybox:1.36",
+        "ready": false,
+        "restartCount": 0,
+        "state": {
+         "waiting": {
+          "reason": "CreateContainerConfigError",
+          "message": "configmap \"x\" not found"
+         }
+        },
+        "lastState": {}
+       }
+      ]
+     }
+    },
+    "events": [
+     {
+      "type": "Warning",
+      "reason": "Failed",
+      "message": "Error: configmap \"x\" not found",
+      "object_kind": "Pod",
+      "object_name": "cg-pod-aaa11",
+      "count": 5,
+      "first_seen": "2026-10-22T15:40:00+00:00",
+      "last_seen": "2026-10-22T16:05:00+00:00"
+     }
+    ],
+    "logs": {
+     "previous": null,
+     "current": null
+    }
+   },
+   "checks": [
+    {
+     "type": "category_in",
+     "values": [
+      "other"
+     ]
+    },
+    {
+     "type": "root_cause_has_any",
+     "values": [
+      "config"
+     ]
+    },
+    {
+     "type": "citations_valid"
+    }
+   ],
+   "good": {
+    "diagnosis": {
+     "category": "other",
+     "root_cause": "The cause is config-related, shown by reason=CreateContainerConfigError.",
+     "confidence": 0.85,
+     "uncertainty": "Limited evidence.",
+     "evidence": [
+      {
+       "evidence_id": "F04",
+       "source": "pod_status",
+       "quote": ""
+      }
+     ]
+    }
+   },
+   "bad": {
+    "diagnosis": {
+     "category": "insufficient_evidence",
+     "root_cause": "No cause can be named.",
+     "confidence": 0.8,
+     "uncertainty": "Limited evidence.",
+     "evidence": [
+      {
+       "evidence_id": "F04",
+       "source": "pod_status",
+       "quote": ""
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "g2",
+   "pod": "cg-pod-bbb22",
+   "mcp": {
+    "describe_pod": {
+     "metadata": {
+      "name": "cg-pod-bbb22",
+      "namespace": "stage4-lab"
+     },
+     "spec": {
+      "containers": []
+     },
+     "status": {
+      "phase": "Pending",
+      "conditions": [
+       {
+        "type": "PodScheduled",
+        "status": "False",
+        "reason": "Unschedulable"
+       }
+      ],
+      "container_statuses": []
+     }
+    },
+    "events": [
+     {
+      "type": "Warning",
+      "reason": "FailedScheduling",
+      "message": "0/3 nodes are available: Insufficient memory",
+      "object_kind": "Pod",
+      "object_name": "cg-pod-bbb22",
+      "count": 5,
+      "first_seen": "2026-10-22T15:40:00+00:00",
+      "last_seen": "2026-10-22T16:05:00+00:00"
+     }
+    ],
+    "logs": {
+     "previous": null,
+     "current": null
+    }
+   },
+   "checks": [
+    {
+     "type": "category_in",
+     "values": [
+      "other"
+     ]
+    },
+    {
+     "type": "root_cause_has_any",
+     "values": [
+      "schedul",
+      "node"
+     ]
+    },
+    {
+     "type": "citations_valid"
+    }
+   ],
+   "good": {
+    "diagnosis": {
+     "category": "other",
+     "root_cause": "The cause is schedul-related, shown by reason=Unschedulable.",
+     "confidence": 0.85,
+     "uncertainty": "Limited evidence.",
+     "evidence": [
+      {
+       "evidence_id": "F02",
+       "source": "pod_status",
+       "quote": ""
+      }
+     ]
+    }
+   },
+   "bad": {
+    "diagnosis": {
+     "category": "insufficient_evidence",
+     "root_cause": "No cause can be named.",
+     "confidence": 0.8,
+     "uncertainty": "Limited evidence.",
+     "evidence": [
+      {
+       "evidence_id": "F02",
+       "source": "pod_status",
+       "quote": ""
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "g3",
+   "pod": "cg-pod-ccc33",
+   "mcp": {
+    "describe_pod": {
+     "metadata": {
+      "name": "cg-pod-ccc33",
+      "namespace": "stage4-lab"
+     },
+     "spec": {
+      "containers": [
+       {
+        "name": "app",
+        "image": "busybox:1.36",
+        "resources": {}
+       }
+      ]
+     },
+     "status": {
+      "phase": "Running",
+      "conditions": [
+       {
+        "type": "Ready",
+        "status": "False",
+        "reason": "ContainersNotReady"
+       }
+      ],
+      "container_statuses": [
+       {
+        "name": "app",
+        "image": "busybox:1.36",
+        "ready": false,
+        "restartCount": 0,
+        "state": {
+         "running": {
+          "startedAt": "2026-10-22T16:00:00+00:00"
+         }
+        },
+        "lastState": {}
+       }
+      ]
+     }
+    },
+    "events": [
+     {
+      "type": "Warning",
+      "reason": "Unhealthy",
+      "message": "Readiness probe failed",
+      "object_kind": "Pod",
+      "object_name": "cg-pod-ccc33",
+      "count": 30,
+      "first_seen": "2026-10-22T15:40:00+00:00",
+      "last_seen": "2026-10-22T16:05:00+00:00"
+     }
+    ],
+    "logs": {
+     "previous": null,
+     "current": null
+    }
+   },
+   "checks": [
+    {
+     "type": "category_in",
+     "values": [
+      "other"
+     ]
+    },
+    {
+     "type": "root_cause_has_any",
+     "values": [
+      "probe",
+      "ready"
+     ]
+    },
+    {
+     "type": "citations_valid"
+    }
+   ],
+   "good": {
+    "diagnosis": {
+     "category": "other",
+     "root_cause": "The cause is probe-related, shown by reason=Unhealthy.",
+     "confidence": 0.85,
+     "uncertainty": "Limited evidence.",
+     "evidence": [
+      {
+       "evidence_id": "F05",
+       "source": "pod_status",
+       "quote": ""
+      }
+     ]
+    }
+   },
+   "bad": {
+    "diagnosis": {
+     "category": "insufficient_evidence",
+     "root_cause": "No cause can be named.",
+     "confidence": 0.8,
+     "uncertainty": "Limited evidence.",
+     "evidence": [
+      {
+       "evidence_id": "F05",
+       "source": "pod_status",
+       "quote": ""
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "g4",
+   "pod": "cg-pod-ddd44",
+   "mcp": {
+    "describe_pod": {
+     "metadata": {
+      "name": "cg-pod-ddd44",
+      "namespace": "stage4-lab"
+     },
+     "spec": {
+      "containers": [
+       {
+        "name": "app",
+        "image": "busybox:1.36",
+        "resources": {}
+       }
+      ]
+     },
+     "status": {
+      "phase": "Pending",
+      "conditions": [
+       {
+        "type": "Ready",
+        "status": "False",
+        "reason": "ContainersNotReady"
+       }
+      ],
+      "container_statuses": [
+       {
+        "name": "app",
+        "image": "busybox:1.36",
+        "ready": false,
+        "restartCount": 0,
+        "state": {
+         "waiting": {
+          "reason": "ContainerCreating"
+         }
+        },
+        "lastState": {}
+       }
+      ]
+     }
+    },
+    "events": [
+     {
+      "type": "Warning",
+      "reason": "FailedMount",
+      "message": "MountVolume.SetUp failed for volume data",
+      "object_kind": "Pod",
+      "object_name": "cg-pod-ddd44",
+      "count": 5,
+      "first_seen": "2026-10-22T15:40:00+00:00",
+      "last_seen": "2026-10-22T16:05:00+00:00"
+     }
+    ],
+    "logs": {
+     "previous": null,
+     "current": null
+    }
+   },
+   "checks": [
+    {
+     "type": "category_in",
+     "values": [
+      "other"
+     ]
+    },
+    {
+     "type": "root_cause_has_any",
+     "values": [
+      "mount",
+      "volume"
+     ]
+    },
+    {
+     "type": "citations_valid"
+    }
+   ],
+   "good": {
+    "diagnosis": {
+     "category": "other",
+     "root_cause": "The cause is mount-related, shown by reason=FailedMount.",
+     "confidence": 0.85,
+     "uncertainty": "Limited evidence.",
+     "evidence": [
+      {
+       "evidence_id": "F05",
+       "source": "pod_status",
+       "quote": ""
+      }
+     ]
+    }
+   },
+   "bad": {
+    "diagnosis": {
+     "category": "insufficient_evidence",
+     "root_cause": "No cause can be named.",
+     "confidence": 0.8,
+     "uncertainty": "Limited evidence.",
+     "evidence": [
+      {
+       "evidence_id": "F05",
+       "source": "pod_status",
+       "quote": ""
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "g5",
+   "pod": "cg-pod-eee55",
+   "mcp": {
+    "describe_pod": {
+     "metadata": {
+      "name": "cg-pod-eee55",
+      "namespace": "stage4-lab"
+     },
+     "spec": {
+      "containers": [
+       {
+        "name": "app",
+        "image": "busybox:1.36",
+        "resources": {}
+       }
+      ]
+     },
+     "status": {
+      "phase": "Failed",
+      "conditions": [
+       {
+        "type": "Ready",
+        "status": "False",
+        "reason": "ContainersNotReady"
+       }
+      ],
+      "container_statuses": [
+       {
+        "name": "app",
+        "image": "busybox:1.36",
+        "ready": false,
+        "restartCount": 0,
+        "state": {},
+        "lastState": {
+         "terminated": {
+          "exitCode": 137,
+          "reason": "ContainerStatusUnknown"
+         }
+        }
+       }
+      ]
+     }
+    },
+    "events": [
+     {
+      "type": "Warning",
+      "reason": "Evicted",
+      "message": "The node was low on resource: ephemeral-storage",
+      "object_kind": "Pod",
+      "object_name": "cg-pod-eee55",
+      "count": 5,
+      "first_seen": "2026-10-22T15:40:00+00:00",
+      "last_seen": "2026-10-22T16:05:00+00:00"
+     }
+    ],
+    "logs": {
+     "previous": null,
+     "current": null
+    }
+   },
+   "checks": [
+    {
+     "type": "category_in",
+     "values": [
+      "other"
+     ]
+    },
+    {
+     "type": "root_cause_has_any",
+     "values": [
+      "evict",
+      "pressure"
+     ]
+    },
+    {
+     "type": "citations_valid"
+    }
+   ],
+   "good": {
+    "diagnosis": {
+     "category": "other",
+     "root_cause": "The cause is evict-related, shown by reason=Evicted.",
+     "confidence": 0.85,
+     "uncertainty": "Limited evidence.",
+     "evidence": [
+      {
+       "evidence_id": "F05",
+       "source": "pod_status",
+       "quote": ""
+      }
+     ]
+    }
+   },
+   "bad": {
+    "diagnosis": {
+     "category": "insufficient_evidence",
+     "root_cause": "No cause can be named.",
+     "confidence": 0.8,
+     "uncertainty": "Limited evidence.",
+     "evidence": [
+      {
+       "evidence_id": "F05",
+       "source": "pod_status",
+       "quote": ""
+      }
+     ]
+    }
+   }
+  }
+ ]
+}

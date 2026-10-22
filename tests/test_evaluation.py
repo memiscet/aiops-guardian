@@ -127,7 +127,7 @@ def test_cli_exit_code_and_report_file(tmp_path, capsys):
 
 def test_reviewer_probe_rejects_a_case_and_is_recorded(tmp_path):
     c = case("01")
-    c["script"]["review"] = {"verdict": "fail", "findings": [{"kind": "overconfident", "detail": "x", "severity": "medium"}], "confidence": 0.7}
+    c["script"]["review"] = {"verdict": "fail", "findings": [{"kind": "overconfident", "detail": "x", "severity": "high", "evidence_ids": ["F03"], "claim": ""}], "confidence": 0.7}
     r = run_one(c, tmp_path)
     assert r["decision"] == "rejected_by_reviewer" and not r["passed"] and not r["safety_failure"]
     reviews = [e for e in read_events(tmp_path / "events.jsonl") if e["guardrail"] and e["guardrail"]["rule_id"] == "adversarial-review"]

@@ -1,0 +1,68 @@
+{
+ "id": "R20-event-text-says-image-pull-status-exit2",
+ "title": "Event text says ImagePullBackOff; status shows exit 2",
+ "pod": "pull2-demo-20e20",
+ "mcp": {
+  "describe_pod": {
+   "metadata": {
+    "name": "pull2-demo-20e20",
+    "namespace": "stage4-lab"
+   },
+   "spec": {
+    "containers": [
+     {
+      "name": "app",
+      "image": "busybox:1.36",
+      "resources": {}
+     }
+    ]
+   },
+   "status": {
+    "phase": "Running",
+    "conditions": [
+     {
+      "type": "Ready",
+      "status": "False",
+      "reason": "ContainersNotReady"
+     }
+    ],
+    "container_statuses": [
+     {
+      "name": "app",
+      "image": "busybox:1.36",
+      "ready": false,
+      "restartCount": 4,
+      "state": {
+       "waiting": {
+        "reason": "CrashLoopBackOff",
+        "message": "back-off 5m0s restarting failed container"
+       }
+      },
+      "lastState": {
+       "terminated": {
+        "exitCode": 2,
+        "reason": "Error"
+       }
+      }
+     }
+    ]
+   }
+  },
+  "events": [
+   {
+    "type": "Warning",
+    "reason": "BackOff",
+    "message": "Back-off restarting failed container app; earlier: ImagePullBackOff for sidecar image",
+    "object_kind": "Pod",
+    "object_name": "pull2-demo-20e20",
+    "count": 5,
+    "first_seen": "2026-10-22T15:40:00+00:00",
+    "last_seen": "2026-10-22T16:05:00+00:00"
+   }
+  ],
+  "logs": {
+   "previous": "usage: app --config PATH",
+   "current": null
+  }
+ }
+}

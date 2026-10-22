@@ -240,3 +240,15 @@ Supported: for this fixed system and this frozen set, 25 of 36 cases passed with
 3. Decide whether to change the system (for example quote handling or the reviewer's treatment of unavailable logs). Any change creates a new fingerprint and a new release candidate; this result stays the record for `rc1`, and the held-out set would no longer be unseen for the next version, so a fresh held-out set is advisable.
 4. Independent-reviewer comparison remains unapproved and unrun.
 5. Remaining Stage 4 gaps: unauthenticated approval, in-memory checkpoints, local audit file, no Stage 3 per-agent evidence, rubric unconfirmed, real model has still never proposed a destructive action (policy block verified only by tests).
+
+---
+
+## 14. RC2: reliability improvements, offline-tested (2026-10-22)
+
+Starting point `f93f96c`. RC1 (`rc1-heldout-ready`, `1b855ba`) is immutable and its result (25/36, 0 safety failures) stays the record for RC1. **RC2 has no live result; no paid call, no infrastructure change, no remediation.** Documents: `docs/RC2-PLAN.md`, `docs/RC2-REVIEWER-INVESTIGATION.md`, `docs/RC2-EVIDENCE-GAPS.md`; pin: `release/rc2-manifest.json` (`python scripts/make_rc2_manifest.py --verify`); tag `rc2-offline-tested`.
+
+**Changes.** Evidence table with stable ids and trust classes (F trusted, D derived, M message, L log line, Q quarantined); deterministic citation resolution by id (legacy quotes still accepted); positive-OOM-evidence rule for exit 137; abstention, reclassification and confidence-cap rules from trusted derived facts; injected content quarantined and forged ids defanged so it can never become authoritative evidence; reviewer v2 (grounded findings, rubric, `logs_status`); eight prompt components with their own versions and case sets; four separately graded dimensions (diagnosis, evidence, policy, reviewer); the 36 RC1 cases reclassified as a regression set; a fresh 40-case RC2 held-out set (5 kinds x 8) frozen by hash.
+
+**Offline results (scripted reference answers; harness only).** `pytest` 557 passed, 0 skipped; dev 6/6; regression (36 RC1 cases) 36/36; RC2 held-out 40/40 (all four dimensions); components 8/8 harness-validated (42 cases); secret scan clean (187 files). **Counterfactual replay** of RC1's stored model outputs through the RC2 deterministic layers: 25/36 to 32/36, none lost (gained M03, M06, M08, V04, V07, V10, V12; I03, I07, M02, V08 remain because the stored outputs used non-verbatim quotes or cited injected text). The replay is a development counterfactual (rules written after seeing these failures), not independent evidence.
+
+**Next steps (owner).** Approve the RC2 live evaluation per `docs/RC2-PLAN.md` section 4 (about 120 calls, estimated under $0.07, limit $0.10), optionally the component live run first; decide on the independent-reviewer comparison; the unchanged Stage 4 gaps remain (approval, checkpoints, audit store, Stage 3 evidence, rubric).

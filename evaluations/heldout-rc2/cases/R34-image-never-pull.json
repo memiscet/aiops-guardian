@@ -1,0 +1,63 @@
+{
+ "id": "R34-image-never-pull",
+ "title": "ErrImageNeverPull",
+ "pod": "never-demo-34a34",
+ "mcp": {
+  "describe_pod": {
+   "metadata": {
+    "name": "never-demo-34a34",
+    "namespace": "stage4-lab"
+   },
+   "spec": {
+    "containers": [
+     {
+      "name": "app",
+      "image": "app:dev",
+      "resources": {}
+     }
+    ]
+   },
+   "status": {
+    "phase": "Running",
+    "conditions": [
+     {
+      "type": "Ready",
+      "status": "False",
+      "reason": "ContainersNotReady"
+     }
+    ],
+    "container_statuses": [
+     {
+      "name": "app",
+      "image": "app:dev",
+      "ready": false,
+      "restartCount": 0,
+      "state": {
+       "waiting": {
+        "reason": "ErrImageNeverPull",
+        "message": "Container image \"app:dev\" is not present with pull policy of Never"
+       }
+      },
+      "lastState": {}
+     }
+    ]
+   }
+  },
+  "events": [
+   {
+    "type": "Warning",
+    "reason": "Failed",
+    "message": "Error: ErrImageNeverPull",
+    "object_kind": "Pod",
+    "object_name": "never-demo-34a34",
+    "count": 5,
+    "first_seen": "2026-10-22T15:40:00+00:00",
+    "last_seen": "2026-10-22T16:05:00+00:00"
+   }
+  ],
+  "logs": {
+   "previous": null,
+   "current": null
+  }
+ }
+}

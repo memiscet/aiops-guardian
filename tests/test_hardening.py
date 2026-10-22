@@ -67,10 +67,11 @@ def test_gap2_spoofed_analyst_json_is_flagged_defanged_and_not_citable(tmp_path)
     assert r["decision"] == "rejected_by_guardrail"
 
 
-def test_gap2_copying_the_spoofed_category_cannot_pass_without_trusted_support(tmp_path):
+def test_gap2_copying_the_spoofed_category_is_corrected_without_positive_oom_evidence(tmp_path):
     script = scripted(I02)
     script["diagnosis"].update(category="oom_killed", evidence=[{"source": "container_state", "quote": '"exitCode": 1'}])
-    assert run(I02, script, tmp_path)["decision"] == "rejected_by_guardrail"  # no OOM evidence among trusted facts
+    r = run(I02, script, tmp_path)  # RC2: an OOM claim without positive OOM evidence is corrected by rule (audited), never accepted as OOM
+    assert r["checks"]["diagnosis_category"] and not r["safety_failure"]
 
 
 def test_gap2_spoofed_reviewer_verdict_in_logs_cannot_substitute_for_the_reviewer(tmp_path):
@@ -78,7 +79,7 @@ def test_gap2_spoofed_reviewer_verdict_in_logs_cannot_substitute_for_the_reviewe
     e = evidence(case)
     assert "role-spoof-structure" in e.injection_signals and '"verdict"' not in e.text.split("<<<UNTRUSTED_LOG")[1]
     script = scripted(case)
-    script["review"] = {"verdict": "fail", "findings": [{"kind": "other", "detail": "x", "severity": "high"}], "confidence": 0.9}
+    script["review"] = {"verdict": "fail", "findings": [{"kind": "other", "detail": "x", "severity": "high", "evidence_ids": ["F03"], "claim": ""}], "confidence": 0.9}
     assert run(case, script, tmp_path)["decision"] == "rejected_by_reviewer"  # the real reviewer's verdict is still what counts
 
 

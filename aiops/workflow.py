@@ -12,7 +12,8 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import interrupt
 from .audit import NullAudit, model_usage, now, read_events
-from .guardrails import ACTION_RULE, CITATION_RULE, LOG_RULE, REVIEW_RULE, normalize_plan, review_outcome, untrusted_text, verify_citations
+from .facts import parse_table
+from .guardrails import ACTION_RULE, CITATION_RULE, LOG_RULE, REVIEW_RULE, analyze_citations, interpret, normalize_plan, review_outcome, untrusted_text
 from .policy import REVIEW_ACTIONS, decide
 from .untrusted import action_echo
 from .pricing import Pricing, load_pricing
@@ -23,6 +24,7 @@ Source = Literal["pod_status", "container_state", "events", "resources", "logs"]
 
 
 class Citation(BaseModel):
+    evidence_id: str
     source: Source
     quote: str
 
@@ -44,6 +46,8 @@ class Finding(BaseModel):
     kind: Literal["unsupported_claim", "plan_diagnosis_mismatch", "followed_log_instructions", "unsafe_action", "overconfident", "other"]
     detail: str
     severity: Literal["low", "medium", "high"]
+    evidence_ids: list[str]
+    claim: str
 
 
 class Review(BaseModel):
@@ -59,10 +63,13 @@ class State(TypedDict, total=False):
     logs_collected: bool
     injection_suspected: bool
     diagnosis: dict
+    diagnosis_raw: dict
     diagnosis_ok: bool
+    logs_status: str
     plan: dict
     review: dict
     review_ok: bool
+    review_concern: bool
     policy: str
     approved: bool
     decision: str
@@ -134,37 +141,57 @@ def build_graph(llm=None, audit=None, pricing: Pricing | None = None, max_attemp
 
     def analyze(s: State):
         parsed, usage = model_step("diagnosis", "analyze", "diagnosis-agent", Diagnosis, s["evidence"])
-        return {"diagnosis": parsed, "usage": s.get("usage", []) + [{"step": "diagnosis", **usage}],
-                "logs_collected": s["logs_collected"] if "logs_collected" in s else _derive_logs_collected(s["evidence"])}
+        collected = s["logs_collected"] if "logs_collected" in s else _derive_logs_collected(s["evidence"])
+        return {"diagnosis": parsed, "diagnosis_raw": parsed, "usage": s.get("usage", []) + [{"step": "diagnosis", **usage}],
+                "logs_collected": collected, "logs_status": "collected" if collected else "unavailable"}
 
     def verify(s: State):
-        ok, reason = verify_citations(s["diagnosis"], s["evidence"])
-        audit.event("analyze", "guardrail", "passed" if ok else "failed", failure_origin=None if ok else "analyze",
-                    inputs=[audit.artifact(s["diagnosis"])],
-                    guardrail={"rule_id": CITATION_RULE[0], "rule_version": CITATION_RULE[1], "result": "pass" if ok else "fail", "reason": reason})
-        return {"diagnosis_ok": ok}
+        r = analyze_citations(s["diagnosis"], s["evidence"], relevance=parse_table(s["evidence"]) is None)
+        reason = r["reason"] + (f" (dropped quarantined ids: {', '.join(r['dropped_ids'])})" if r["dropped_ids"] else "")
+        audit.event("analyze", "guardrail", "passed" if r["ok"] else "failed", failure_origin=None if r["ok"] else "analyze",
+                    inputs=[audit.artifact({"diagnosis": s["diagnosis"], "resolved_ids": r["ids"], "dropped_ids": r["dropped_ids"]})],
+                    guardrail={"rule_id": CITATION_RULE[0], "rule_version": CITATION_RULE[1], "result": "pass" if r["ok"] else "fail", "reason": reason})
+        return {"diagnosis_ok": r["ok"]}
 
-    def after_verify(s: State):
+    def interpret_node(s: State):
+        diagnosis, notes = interpret(s["diagnosis"], s["evidence"])
+        for n in notes:
+            audit.event("analyze", "guardrail", "passed", inputs=[audit.artifact({"before": s["diagnosis"], "after": diagnosis})],
+                        guardrail={"rule_id": n["rule"], "rule_version": "1", "result": "fail", "reason": n["reason"]})
+        ok = True
+        if parse_table(s["evidence"]) is not None:
+            r = analyze_citations(diagnosis, s["evidence"])
+            ok = r["ok"]
+            audit.event("analyze", "guardrail", "passed" if ok else "failed", failure_origin=None if ok else "analyze",
+                        inputs=[audit.artifact({"diagnosis": diagnosis, "resolved_ids": r["ids"]})],
+                        guardrail={"rule_id": "citation-relevance", "rule_version": "1", "result": "pass" if ok else "fail",
+                                   "reason": r["reason"] if not ok else f"final category {diagnosis['category']} is supported by its trusted citations"})
+        return {"diagnosis": diagnosis, "diagnosis_ok": ok}
+
+    def after_interpret(s: State):
         return "plan" if s["diagnosis_ok"] else "report"
 
+    def after_verify(s: State):
+        return "interpret" if s["diagnosis_ok"] else "report"
+
     def plan(s: State):
-        content = json.dumps({"diagnosis": s["diagnosis"], "namespace": s["namespace"], "logs_already_collected": s["logs_collected"]})
+        content = json.dumps({"diagnosis": s["diagnosis"], "namespace": s["namespace"], "logs_status": s["logs_status"]})
         parsed, usage = model_step("planning", "plan", "planning-agent", Plan, content)
-        parsed, note = normalize_plan(parsed, s["logs_collected"])
+        parsed, note = normalize_plan(parsed, s["logs_collected"] or parse_table(s["evidence"]) is not None)
         if note:
             audit.event("plan", "guardrail", "passed", inputs=[audit.artifact(parsed)],
                         guardrail={"rule_id": LOG_RULE[0], "rule_version": LOG_RULE[1], "result": "fail", "reason": note})
         return {"plan": parsed, "usage": s["usage"] + [{"step": "planning", **usage}]}
 
     def review(s: State):
-        content = json.dumps({"evidence": s["evidence"], "diagnosis": s["diagnosis"], "plan": s["plan"],
-                              "logs_already_collected": s["logs_collected"]})
+        content = json.dumps({"evidence": s["evidence"], "diagnosis": s["diagnosis"], "plan": s["plan"], "logs_status": s["logs_status"]})
         parsed, usage = model_step("review", "review", "adversarial-reviewer", Review, content, reviewer_llm)
-        ok, reason = review_outcome(parsed)
+        ok, reason = review_outcome(parsed, s["plan"], s["diagnosis"], s["evidence"])
+        concern = ok and (parsed.get("verdict") != "pass" or any(f.get("severity") == "high" for f in parsed.get("findings", [])))
         audit.event("review", "guardrail", "passed" if ok else "failed", failure_origin=None if ok else "review",
                     inputs=[audit.artifact(parsed)],
                     guardrail={"rule_id": REVIEW_RULE, "rule_version": usage["prompt_version"], "result": "pass" if ok else "fail", "reason": reason})
-        return {"review": parsed, "review_ok": ok, "usage": s["usage"] + [{"step": "review", **usage}]}
+        return {"review": parsed, "review_ok": ok, "review_concern": concern, "usage": s["usage"] + [{"step": "review", **usage}]}
 
     def after_review(s: State):
         return "policy" if s["review_ok"] else "report"
@@ -244,12 +271,13 @@ def build_graph(llm=None, audit=None, pricing: Pricing | None = None, max_attemp
         return {"publish": {"status": "ok", **refs}}
 
     graph = StateGraph(State)
-    for name, fn in [("analyze", analyze), ("verify", verify), ("plan", plan), ("review", review), ("policy", policy),
+    for name, fn in [("analyze", analyze), ("verify", verify), ("interpret", interpret_node), ("plan", plan), ("review", review), ("policy", policy),
                      ("approval_request", approval_request), ("approval", approval), ("report", report), ("publish", publish)]:
         graph.add_node(name, fn)
     graph.add_edge(START, "analyze")
     graph.add_edge("analyze", "verify")
     graph.add_conditional_edges("verify", after_verify)
+    graph.add_conditional_edges("interpret", after_interpret)
     graph.add_edge("plan", "review")
     graph.add_conditional_edges("review", after_review)
     graph.add_conditional_edges("policy", route)

@@ -135,7 +135,11 @@ def run_review_probe(probe: dict, cases: dict, reviewer, audit, pricing) -> dict
     state = {"namespace": "stage4-lab", "pod": case["pod"], "evidence": evidence.text, "usage": [],
              "logs_collected": evidence.logs_collected, "injection_suspected": evidence.injection_suspected}
     out = graph.invoke(state, config={"configurable": {"thread_id": str(uuid.uuid4())}})
-    got = {"rejected_by_reviewer": "fail", "rejected_by_guardrail": "guardrail"}.get(out.get("decision"), "pass")
+    rv = out.get("review") or {}
+    if out.get("decision") == "rejected_by_guardrail" or not rv:
+        got = "guardrail"
+    else:
+        got = "fail" if rv.get("verdict") != "pass" or any(f.get("severity") == "high" for f in rv.get("findings", [])) else "pass"  # the reviewer's own decision, separate from workflow outcome rules
     return {"probe_id": probe["id"], "expected_verdict": probe["expected_verdict"], "reviewer_verdict": got,
             "correct": got == probe["expected_verdict"], "decision": out.get("decision"),
             "findings": [(f["kind"], f["severity"]) for f in (out.get("review") or {}).get("findings", [])],

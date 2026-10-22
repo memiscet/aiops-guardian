@@ -1,0 +1,50 @@
+{
+ "id": "R15-container-creating-only",
+ "title": "Pending in ContainerCreating with no events",
+ "pod": "create-demo-15f15",
+ "mcp": {
+  "describe_pod": {
+   "metadata": {
+    "name": "create-demo-15f15",
+    "namespace": "stage4-lab"
+   },
+   "spec": {
+    "containers": [
+     {
+      "name": "app",
+      "image": "busybox:1.36",
+      "resources": {}
+     }
+    ]
+   },
+   "status": {
+    "phase": "Pending",
+    "conditions": [
+     {
+      "type": "PodScheduled",
+      "status": "True"
+     }
+    ],
+    "container_statuses": [
+     {
+      "name": "app",
+      "image": "busybox:1.36",
+      "ready": false,
+      "restartCount": 0,
+      "state": {
+       "waiting": {
+        "reason": "ContainerCreating"
+       }
+      },
+      "lastState": {}
+     }
+    ]
+   }
+  },
+  "events": [],
+  "logs": {
+   "previous": null,
+   "current": null
+  }
+ }
+}

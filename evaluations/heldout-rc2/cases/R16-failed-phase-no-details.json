@@ -1,0 +1,26 @@
+{
+ "id": "R16-failed-phase-no-details",
+ "title": "Failed pod with no container statuses or events",
+ "pod": "gone-demo-16a16",
+ "mcp": {
+  "describe_pod": {
+   "metadata": {
+    "name": "gone-demo-16a16",
+    "namespace": "stage4-lab"
+   },
+   "spec": {
+    "containers": []
+   },
+   "status": {
+    "phase": "Failed",
+    "conditions": [],
+    "container_statuses": []
+   }
+  },
+  "events": [],
+  "logs": {
+   "previous": null,
+   "current": null
+  }
+ }
+}

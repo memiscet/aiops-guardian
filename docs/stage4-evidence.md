@@ -107,6 +107,9 @@ What the live v2 runs show (and do not show):
 - Pricing covers `gpt-4.1-mini` only; list prices retrieved 2026-10-22; estimates are not invoices.
 - MiniStack coverage is limited to put/get object, head/list, get-queue-url, send/receive/delete message; state is lost if the container is removed.
 
+## RC2 (offline-tested candidate, no live result)
+RC2 addresses the RC1 held-out failure modes: exit-137 interpretation with positive OOM evidence, stable evidence ids with deterministic citation resolution, abstention and confidence calibration from trusted derived facts, grounded reviewer outcomes, quarantine of injected content, and separate grading of diagnosis, evidence, policy and reviewer. Eight prompt components are individually specified and harness-evaluated (Stage 3 style; live measurement pending). RC1's 36 cases are now a regression set; a fresh 40-case RC2 held-out set is frozen by hash. Offline: 557 tests pass; reference answers 6/6, 36/36, 40/40; counterfactual replay of RC1's stored outputs 25/36 to 32/36 (development counterfactual). Plan: `docs/RC2-PLAN.md`; gaps: `docs/RC2-EVIDENCE-GAPS.md`; pin: `release/rc2-manifest.json`. **Not claimed:** any live RC2 accuracy, any improvement over RC1 in live terms, per-component 0.95 results.
+
 ## Evidence gaps (as of the held-out milestone)
 1. Held-out live result: one run only (25/36); variability across repeats unmeasured; any later system change needs a new candidate and a fresh held-out set.
 2. Independent-reviewer comparison: not run (needs a chosen model, its dated price, and approval).

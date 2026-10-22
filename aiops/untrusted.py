@@ -51,6 +51,7 @@ _NATIVE_RES = [re.compile(p) for k, p in _PHRASES.items() if k in _NATIVE]
 _ROLE_LINE = re.compile(r"(?im)^\s*(system|assistant|developer)\s*[:>\]]")
 _CHAT_TOKENS = re.compile(r"(?i)<\|[a-z_]+\|>|\[/?inst\]|<</?sys>>|</?s>|</?system>|</?assistant>|^#{2,3}\s*(system|instruction)s?\b", re.M)
 _VOCAB = re.compile(r"(?i)\b(" + "|".join(ACTION_IDS) + r")\b|kubectl\s+(delete|exec|apply|patch|scale|edit|drain|cordon|replace|create)\b")
+_ID_SPOOF = re.compile(r"\[(?:[FMDL]\d{1,3}(?:\.\d{1,3})?)(?: [TUQD])?\]|(?m:^[FMD]\d{1,3} [TUQD] \| )")
 _YAML_KEY = re.compile(r"(?im)^\s*[\"']?(" + "|".join(sorted(PROTECTED_KEYS)) + r")[\"']?\s*[:=]\s*\S")
 
 
@@ -124,6 +125,8 @@ def signals(text: str) -> list[str]:
     probe = _unescaped(text)
     if any(_is_spoof(o) for _, _, o in _json_objects(probe)) or len(_YAML_KEY.findall(probe)) >= 2:
         found.append("role-spoof-structure")
+    if _ID_SPOOF.search(text):
+        found.append("evidence-id-spoof")
     if _INVISIBLE.search(text):
         found.append("obfuscation-chars")
     if any(len(_scripts(w)) > 1 for w in re.findall(r"\w+", text)[:2000]):
@@ -150,6 +153,10 @@ def defang(text: str) -> tuple[str, list[str]]:
         clean = _YAML_KEY.sub("[defanged analyst-style key]", clean)
         if "role-spoof-structure" not in acted:
             acted.append("role-spoof-structure")
+    spoofless = _ID_SPOOF.sub("[id-like text removed]", clean)
+    if spoofless != clean:
+        acted.append("evidence-id-spoof")
+        clean = spoofless
     new = _ROLE_LINE.sub("[role-prefix removed]", clean)
     new = _CHAT_TOKENS.sub("[chat-token removed]", new)
     if new != clean:

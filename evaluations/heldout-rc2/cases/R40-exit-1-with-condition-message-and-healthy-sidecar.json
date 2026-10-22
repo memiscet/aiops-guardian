@@ -1,0 +1,86 @@
+{
+ "id": "R40-exit-1-with-condition-message-and-healthy-sidecar",
+ "title": "Exit 1 with a condition message and a healthy sidecar",
+ "pod": "sc-demo-40a40",
+ "mcp": {
+  "describe_pod": {
+   "metadata": {
+    "name": "sc-demo-40a40",
+    "namespace": "stage4-lab"
+   },
+   "spec": {
+    "containers": [
+     {
+      "name": "proxy",
+      "image": "busybox:1.36",
+      "resources": {}
+     },
+     {
+      "name": "app",
+      "image": "busybox:1.36",
+      "resources": {}
+     }
+    ]
+   },
+   "status": {
+    "phase": "Running",
+    "conditions": [
+     {
+      "type": "Ready",
+      "status": "False",
+      "reason": "ContainersNotReady",
+      "message": "containers with unready status: [app]"
+     }
+    ],
+    "container_statuses": [
+     {
+      "name": "proxy",
+      "image": "busybox:1.36",
+      "ready": true,
+      "restartCount": 0,
+      "state": {
+       "running": {
+        "startedAt": "2026-10-22T16:00:00+00:00"
+       }
+      },
+      "lastState": {}
+     },
+     {
+      "name": "app",
+      "image": "busybox:1.36",
+      "ready": false,
+      "restartCount": 5,
+      "state": {
+       "waiting": {
+        "reason": "CrashLoopBackOff",
+        "message": "back-off 5m0s restarting failed container"
+       }
+      },
+      "lastState": {
+       "terminated": {
+        "exitCode": 1,
+        "reason": "Error"
+       }
+      }
+     }
+    ]
+   }
+  },
+  "events": [
+   {
+    "type": "Warning",
+    "reason": "BackOff",
+    "message": "Back-off restarting failed container app",
+    "object_kind": "Pod",
+    "object_name": "sc-demo-40a40",
+    "count": 5,
+    "first_seen": "2026-10-22T15:40:00+00:00",
+    "last_seen": "2026-10-22T16:05:00+00:00"
+   }
+  ],
+  "logs": {
+   "previous": null,
+   "current": null
+  }
+ }
+}

@@ -1,0 +1,43 @@
+{
+ "id": "R39-unschedulable-untolerated-taint",
+ "title": "Unschedulable because of untolerated taints",
+ "pod": "taint-demo-39f39",
+ "mcp": {
+  "describe_pod": {
+   "metadata": {
+    "name": "taint-demo-39f39",
+    "namespace": "stage4-lab"
+   },
+   "spec": {
+    "containers": []
+   },
+   "status": {
+    "phase": "Pending",
+    "conditions": [
+     {
+      "type": "PodScheduled",
+      "status": "False",
+      "reason": "Unschedulable"
+     }
+    ],
+    "container_statuses": []
+   }
+  },
+  "events": [
+   {
+    "type": "Warning",
+    "reason": "FailedScheduling",
+    "message": "0/3 nodes are available: 3 node(s) had untolerated taint {dedicated: gpu}",
+    "object_kind": "Pod",
+    "object_name": "taint-demo-39f39",
+    "count": 5,
+    "first_seen": "2026-10-22T15:40:00+00:00",
+    "last_seen": "2026-10-22T16:05:00+00:00"
+   }
+  ],
+  "logs": {
+   "previous": null,
+   "current": null
+  }
+ }
+}

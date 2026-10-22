@@ -1,0 +1,26 @@
+{
+ "id": "R10-pending-nothing-known",
+ "title": "Pending pod with no conditions, containers, events or logs",
+ "pod": "empty-demo-10a10",
+ "mcp": {
+  "describe_pod": {
+   "metadata": {
+    "name": "empty-demo-10a10",
+    "namespace": "stage4-lab"
+   },
+   "spec": {
+    "containers": []
+   },
+   "status": {
+    "phase": "Pending",
+    "conditions": [],
+    "container_statuses": []
+   }
+  },
+  "events": [],
+  "logs": {
+   "previous": null,
+   "current": null
+  }
+ }
+}

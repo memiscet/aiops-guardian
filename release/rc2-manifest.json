@@ -1,0 +1,315 @@
+{
+ "release_candidate": "rc2-offline-tested",
+ "generated": "2026-10-22",
+ "base_commit": "f93f96c53e2d69a0675add54aa48c0a10fab0c72",
+ "base_commit_subject": "Record held-out evaluation result of record for rc1-heldout-ready",
+ "supersedes": null,
+ "rc1": {
+  "tag": "rc1-heldout-ready",
+  "commit": "1b855ba",
+  "result_report_sha256": "431d98ed85403ca117c1dc1f779618e2674672d23d6983c7f75726f4b7beda0f",
+  "status": "immutable; verify with --verify-rev"
+ },
+ "working_tree_dirty_when_generated": true,
+ "source_tree_sha256": "055d0067db8db0193d8ce06ed4258d54dcbe6b8e05e40b2960fbc30e88ca82fe",
+ "source_tree_files": 165,
+ "system_fingerprint": {
+  "code_and_config_sha256": "ae789af7ee72f80f54a6158e3d1f19caa914b939d44383ea1999227a4a80fc30",
+  "prompt_versions": {
+   "diagnosis": "diagnosis-rc2.1",
+   "planning": "planning-rc2.1",
+   "review": "review-rc2.1"
+  },
+  "prompt_sha256": {
+   "diagnosis": "985a01c5ba307a52b347877865eb50c9b5303a5713cda53f41b9fa64f941524f",
+   "planning": "931a9b78c04d8d87dc243d7b6820618dc1d266ddc2e0981169b0da9d0dabee8a",
+   "review": "d1d028ecf1f1fb720e27cc5cdba11af48b25a62e11bfd2decc9a05dd57c21320"
+  }
+ },
+ "components": {
+  "untrusted_data_rule": {
+   "version": "1",
+   "sha256": "66d96a359973074e2b0d56148713feb992e770eac7dcf4c38ba2f6b8635016de"
+  },
+  "evidence_id_citation_rule": {
+   "version": "1",
+   "sha256": "0fa39ad5894f4ad0b2454f597e9023801d6d40a8fb7bcdb304d43b80a843659c"
+  },
+  "exit_code_137_rule": {
+   "version": "1",
+   "sha256": "9ee401c88976520512eb0eab83732c36b8119cfafaf9313dfa3043b3956a5191"
+  },
+  "abstention_rule": {
+   "version": "1",
+   "sha256": "ddce5fdccdb70655e2a93f22dec269d0652de4cc1f062b6d1bd3fd56b556cc9f"
+  },
+  "confidence_rule": {
+   "version": "1",
+   "sha256": "199929f0a34bafd2cf710d8b21f4f781a057c354fb888519af8ddca29a0ac635"
+  },
+  "category_selection_rule": {
+   "version": "1",
+   "sha256": "565083e7f1d38fdab40bc9a841daca31068e4400de770eee866aa028b3c079d5"
+  },
+  "plan_action_rule": {
+   "version": "1",
+   "sha256": "16cd92c8811e8e09f5ab425edcc37220a8e0a400876e84072bd62d5e85f9aee6"
+  },
+  "reviewer_rubric": {
+   "version": "1",
+   "sha256": "52fa165d45248708b61f87cdd3ee47975a18e653c74ba6a68d6effe08f1e8748"
+  }
+ },
+ "model_config": {
+  "provider": "openai",
+  "api": "responses.parse (structured outputs)",
+  "model": "gpt-4.1-mini",
+  "max_output_tokens_per_call": 800,
+  "client_max_retries": 0,
+  "request_timeout_s": 60.0,
+  "workflow_max_attempts": 1,
+  "temperature": "API default (not set)",
+  "reviewer_model": "same client and model as diagnosis and planning (no independent reviewer configured)",
+  "pricing_version": "openai-2026-10-22.1",
+  "pricing_as_of": "2026-10-22"
+ },
+ "limits": {
+  "regression": {
+   "max_cases": 40,
+   "max_model_calls": 120,
+   "max_output_tokens_per_call": 800,
+   "max_total_tokens": 150000,
+   "max_estimated_cost_usd": 0.1
+  },
+  "heldout_rc2": {
+   "max_cases": 45,
+   "max_model_calls": 135,
+   "max_output_tokens_per_call": 800,
+   "max_total_tokens": 180000,
+   "max_estimated_cost_usd": 0.1
+  }
+ },
+ "frozen_assets": {
+  "rc1_heldout_manifest_sha256": "75b0e0a53a25a25d670095c8b49155e88f15b882db286ee78ff71b97764c255b",
+  "rc1_judge_source_sha256": "c8e05446178d31abaf79d7d0811b154c294e672e8268d6af3277bae6c0884c31",
+  "rc2_heldout_manifest_sha256": "48added25daf81b63bc03c41623e5bcd870de9d5e417ecf650b1111d595603ec",
+  "rc2_gold_sha256": "09ed7587dd2b4fece3d4129146a54e1137b0972b69db8373afa81871a9ad3aaa",
+  "rc2_review_items_sha256": "c0e1d98c6e50183a7813ea8e57d83b4ec4e88f383ddf7951b82011d670ff6e88",
+  "rc2_cases": 40
+ },
+ "environment": {
+  "python": "3.14.7",
+  "packages": {
+   "openai": "2.54.0",
+   "langgraph": "1.2.16",
+   "mcp": "1.30.0",
+   "pydantic": "2.14.1",
+   "pytest": "9.1.1",
+   "jsonschema": "4.26.0",
+   "PyYAML": "6.0.3",
+   "boto3": "1.43.117"
+  }
+ },
+ "offline_results": {
+  "pytest": "557 passed, 0 skipped in 100.6s",
+  "suites": {
+   "dev": {
+    "cases": 6,
+    "end_to_end": {
+     "k": 6,
+     "n": 6,
+     "rate": 1.0
+    },
+    "diagnosis_correct": {
+     "k": 6,
+     "n": 6,
+     "rate": 1.0
+    },
+    "evidence_valid": {
+     "k": 6,
+     "n": 6,
+     "rate": 1.0
+    },
+    "safety_failures": 0,
+    "errors": 0,
+    "by_kind": {},
+    "model_calls": 18
+   },
+   "regression-rc1": {
+    "cases": 36,
+    "end_to_end": {
+     "k": 36,
+     "n": 36,
+     "rate": 1.0
+    },
+    "diagnosis_correct": {
+     "k": 36,
+     "n": 36,
+     "rate": 1.0
+    },
+    "evidence_valid": {
+     "k": 36,
+     "n": 36,
+     "rate": 1.0
+    },
+    "safety_failures": 0,
+    "errors": 0,
+    "by_kind": {
+     "injection": {
+      "cases": 7,
+      "end_to_end": 7,
+      "diagnosis_correct": 7,
+      "evidence_valid": 7
+     },
+     "misleading": {
+      "cases": 7,
+      "end_to_end": 7,
+      "diagnosis_correct": 7,
+      "evidence_valid": 7
+     },
+     "missing": {
+      "cases": 8,
+      "end_to_end": 8,
+      "diagnosis_correct": 8,
+      "evidence_valid": 8
+     },
+     "variant": {
+      "cases": 14,
+      "end_to_end": 14,
+      "diagnosis_correct": 14,
+      "evidence_valid": 14
+     }
+    },
+    "model_calls": 108
+   },
+   "heldout-rc2": {
+    "cases": 40,
+    "end_to_end": {
+     "k": 40,
+     "n": 40,
+     "rate": 1.0
+    },
+    "diagnosis_correct": {
+     "k": 40,
+     "n": 40,
+     "rate": 1.0
+    },
+    "evidence_valid": {
+     "k": 40,
+     "n": 40,
+     "rate": 1.0
+    },
+    "safety_failures": 0,
+    "errors": 0,
+    "by_kind": {
+     "injection": {
+      "cases": 8,
+      "end_to_end": 8,
+      "diagnosis_correct": 8,
+      "evidence_valid": 8
+     },
+     "misleading": {
+      "cases": 8,
+      "end_to_end": 8,
+      "diagnosis_correct": 8,
+      "evidence_valid": 8
+     },
+     "missing": {
+      "cases": 8,
+      "end_to_end": 8,
+      "diagnosis_correct": 8,
+      "evidence_valid": 8
+     },
+     "signal137": {
+      "cases": 8,
+      "end_to_end": 8,
+      "diagnosis_correct": 8,
+      "evidence_valid": 8
+     },
+     "variant": {
+      "cases": 8,
+      "end_to_end": 8,
+      "diagnosis_correct": 8,
+      "evidence_valid": 8
+     }
+    },
+    "model_calls": 120
+   }
+  },
+  "components_harness": {
+   "abstention_rule": {
+    "version": "1",
+    "cases": 5,
+    "harness_validated": true,
+    "good_pass": 5,
+    "bad_fail": 5
+   },
+   "category_selection_rule": {
+    "version": "1",
+    "cases": 5,
+    "harness_validated": true,
+    "good_pass": 5,
+    "bad_fail": 5
+   },
+   "confidence_rule": {
+    "version": "1",
+    "cases": 5,
+    "harness_validated": true,
+    "good_pass": 5,
+    "bad_fail": 5
+   },
+   "evidence_id_citation_rule": {
+    "version": "1",
+    "cases": 5,
+    "harness_validated": true,
+    "good_pass": 5,
+    "bad_fail": 5
+   },
+   "exit_code_137_rule": {
+    "version": "1",
+    "cases": 6,
+    "harness_validated": true,
+    "good_pass": 6,
+    "bad_fail": 6
+   },
+   "plan_action_rule": {
+    "version": "1",
+    "cases": 5,
+    "harness_validated": true,
+    "good_pass": 5,
+    "bad_fail": 5
+   },
+   "reviewer_rubric": {
+    "version": "1",
+    "cases": 6,
+    "harness_validated": true,
+    "good_pass": 6,
+    "bad_fail": 6
+   },
+   "untrusted_data_rule": {
+    "version": "1",
+    "cases": 5,
+    "harness_validated": true,
+    "good_pass": 5,
+    "bad_fail": 5
+   }
+  },
+  "replay_of_rc1_outputs_through_rc2_deterministic_layers": {
+   "rc1_passed": 25,
+   "rc2_replay_end_to_end": 32,
+   "cases": 36,
+   "gained": [
+    "M03-crashloop-empty-laststate",
+    "M06-exit137-without-reason",
+    "M08-status-with-termination-message",
+    "V04-liveness-probe-kill-137",
+    "V07-private-registry-unauthorized",
+    "V10-unbound-pvc",
+    "V12-evicted-ephemeral-storage"
+   ],
+   "lost": []
+  },
+  "scope": "offline: scripted reference answers; checks harness, grader, rules and deterministic controls, not language-model quality. The replay is a counterfactual on RC1's stored outputs."
+ },
+ "live_results": "none for RC2; no paid call has been made against it"
+}

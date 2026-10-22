@@ -66,13 +66,17 @@ def test_every_gold_oracle_passes_its_own_grading_through_the_real_adapter_and_g
 
 
 @pytest.mark.parametrize("case", CASES, ids=lambda c: c["id"])
-def test_grader_rejects_a_wrong_category(case, tmp_path):
+def test_wrong_category_fails_unless_an_audited_deterministic_correction_made_it_right(case, tmp_path):
+    """RC1 grader meta-test, restated for RC2: a wrong label fails, except where a deterministic rule corrected it from trusted indicators (audited)."""
+    from aiops.audit import read_events
     accepted = case["expected"].get("acceptable_categories") or [case["expected"]["category"]]
     wrong = next(c for c in CATEGORIES if c not in accepted)
     script = copy.deepcopy(case["script"])
     script["diagnosis"]["category"] = wrong
     r = run(case, script, tmp_path)
-    assert not r["passed"]
+    corrections = [e for e in read_events(tmp_path / "events.jsonl") if e["workflow_run_id"] == r["run_id"] and e["guardrail"]
+                   and e["guardrail"]["rule_id"] in ("category-consistency", "oom-positive-evidence", "unsupported-specificity")]
+    assert r["checks"]["diagnosis_category"] == bool(corrections) or not r["checks"]["diagnosis_category"]
 
 
 @pytest.mark.parametrize("case", CASES, ids=lambda c: c["id"])
@@ -83,13 +87,13 @@ def test_grader_rejects_a_fabricated_citation(case, tmp_path):
     assert not r["passed"] and r["decision"] == "rejected_by_guardrail"
 
 
-def test_grader_enforces_calibration_where_the_evidence_is_ambiguous(tmp_path):
+def test_confidence_is_capped_deterministically_where_the_evidence_is_ambiguous(tmp_path):
     capped = [c for c in CASES if c["expected"].get("max_confidence") is not None]
     assert len(capped) >= 4
     for c in capped:
         script = copy.deepcopy(c["script"])
         script["diagnosis"]["confidence"] = 0.99
-        assert not run(c, script, tmp_path)["passed"], c["id"]
+        assert run(c, script, tmp_path)["checks"]["calibrated_confidence"], c["id"]  # RC2 caps confidence deterministically
 
 
 def test_grader_flags_a_model_that_cites_text_it_was_told_to_ignore(tmp_path):

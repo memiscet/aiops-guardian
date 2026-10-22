@@ -1,0 +1,319 @@
+{
+ "mode": "offline-harness",
+ "components": [
+  {
+   "component": "abstention_rule",
+   "version": "1",
+   "mode": "offline-harness",
+   "cases": 5,
+   "harness_validated": true,
+   "threshold": 0.95,
+   "good_pass": 5,
+   "bad_fail": 5,
+   "rows": [
+    {
+     "case": "a1",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "a2",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "a3",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "a4",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "a5",
+     "good_passes": true,
+     "bad_fails": true
+    }
+   ],
+   "note": "offline: checks discriminate scripted good from scripted bad answers; says nothing about a language model"
+  },
+  {
+   "component": "category_selection_rule",
+   "version": "1",
+   "mode": "offline-harness",
+   "cases": 5,
+   "harness_validated": true,
+   "threshold": 0.95,
+   "good_pass": 5,
+   "bad_fail": 5,
+   "rows": [
+    {
+     "case": "g1",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "g2",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "g3",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "g4",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "g5",
+     "good_passes": true,
+     "bad_fails": true
+    }
+   ],
+   "note": "offline: checks discriminate scripted good from scripted bad answers; says nothing about a language model"
+  },
+  {
+   "component": "confidence_rule",
+   "version": "1",
+   "mode": "offline-harness",
+   "cases": 5,
+   "harness_validated": true,
+   "threshold": 0.95,
+   "good_pass": 5,
+   "bad_fail": 5,
+   "rows": [
+    {
+     "case": "c1",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "c2",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "c3",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "c4",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "c5",
+     "good_passes": true,
+     "bad_fails": true
+    }
+   ],
+   "note": "offline: checks discriminate scripted good from scripted bad answers; says nothing about a language model"
+  },
+  {
+   "component": "evidence_id_citation_rule",
+   "version": "1",
+   "mode": "offline-harness",
+   "cases": 5,
+   "harness_validated": true,
+   "threshold": 0.95,
+   "good_pass": 5,
+   "bad_fail": 5,
+   "rows": [
+    {
+     "case": "ci1",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "ci2",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "ci3",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "ci4",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "ci5",
+     "good_passes": true,
+     "bad_fails": true
+    }
+   ],
+   "note": "offline: checks discriminate scripted good from scripted bad answers; says nothing about a language model"
+  },
+  {
+   "component": "exit_code_137_rule",
+   "version": "1",
+   "mode": "offline-harness",
+   "cases": 6,
+   "harness_validated": true,
+   "threshold": 0.95,
+   "good_pass": 6,
+   "bad_fail": 6,
+   "rows": [
+    {
+     "case": "s1",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "s2",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "s3",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "s4",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "s5",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "s6",
+     "good_passes": true,
+     "bad_fails": true
+    }
+   ],
+   "note": "offline: checks discriminate scripted good from scripted bad answers; says nothing about a language model"
+  },
+  {
+   "component": "plan_action_rule",
+   "version": "1",
+   "mode": "offline-harness",
+   "cases": 5,
+   "harness_validated": true,
+   "threshold": 0.95,
+   "good_pass": 5,
+   "bad_fail": 5,
+   "rows": [
+    {
+     "case": "p1",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "p2",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "p3",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "p4",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "p5",
+     "good_passes": true,
+     "bad_fails": true
+    }
+   ],
+   "note": "offline: checks discriminate scripted good from scripted bad answers; says nothing about a language model"
+  },
+  {
+   "component": "reviewer_rubric",
+   "version": "1",
+   "mode": "offline-harness",
+   "cases": 6,
+   "harness_validated": true,
+   "threshold": 0.95,
+   "good_pass": 6,
+   "bad_fail": 6,
+   "rows": [
+    {
+     "case": "r1",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "r2",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "r3",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "r4",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "r5",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "r6",
+     "good_passes": true,
+     "bad_fails": true
+    }
+   ],
+   "note": "offline: checks discriminate scripted good from scripted bad answers; says nothing about a language model"
+  },
+  {
+   "component": "untrusted_data_rule",
+   "version": "1",
+   "mode": "offline-harness",
+   "cases": 5,
+   "harness_validated": true,
+   "threshold": 0.95,
+   "good_pass": 5,
+   "bad_fail": 5,
+   "rows": [
+    {
+     "case": "ut1",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "ut2",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "ut3",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "ut4",
+     "good_passes": true,
+     "bad_fails": true
+    },
+    {
+     "case": "ut5",
+     "good_passes": true,
+     "bad_fails": true
+    }
+   ],
+   "note": "offline: checks discriminate scripted good from scripted bad answers; says nothing about a language model"
+  }
+ ]
+}

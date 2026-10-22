@@ -1,0 +1,482 @@
+{
+ "component": "confidence_rule",
+ "version": "1",
+ "step": "diagnosis",
+ "goal": "Confidence follows the evidence: at most 0.95 with a positive trusted indicator, at most 0.7 when abstaining on a failing pod, never 1.0.",
+ "threshold": 0.95,
+ "cases": [
+  {
+   "id": "c1",
+   "pod": "cf-pod-aaa11",
+   "mcp": {
+    "describe_pod": {
+     "metadata": {
+      "name": "cf-pod-aaa11",
+      "namespace": "stage4-lab"
+     },
+     "spec": {
+      "containers": [
+       {
+        "name": "app",
+        "image": "busybox:1.36",
+        "resources": {}
+       }
+      ]
+     },
+     "status": {
+      "phase": "Running",
+      "conditions": [
+       {
+        "type": "Ready",
+        "status": "False",
+        "reason": "ContainersNotReady"
+       }
+      ],
+      "container_statuses": [
+       {
+        "name": "app",
+        "image": "busybox:1.36",
+        "ready": false,
+        "restartCount": 4,
+        "state": {
+         "waiting": {
+          "reason": "CrashLoopBackOff",
+          "message": "back-off 5m0s restarting failed container"
+         }
+        },
+        "lastState": {
+         "terminated": {
+          "exitCode": 137
+         }
+        }
+       }
+      ]
+     }
+    },
+    "events": [],
+    "logs": {
+     "previous": null,
+     "current": null
+    }
+   },
+   "checks": [
+    {
+     "type": "confidence_max",
+     "value": 0.7
+    },
+    {
+     "type": "category_in",
+     "values": [
+      "insufficient_evidence"
+     ]
+    }
+   ],
+   "good": {
+    "diagnosis": {
+     "category": "insufficient_evidence",
+     "root_cause": "Derived from the trusted rows.",
+     "confidence": 0.6,
+     "uncertainty": "Limited evidence.",
+     "evidence": [
+      {
+       "evidence_id": "D02",
+       "source": "pod_status",
+       "quote": ""
+      }
+     ]
+    }
+   },
+   "bad": {
+    "diagnosis": {
+     "category": "insufficient_evidence",
+     "root_cause": "Derived from the trusted rows.",
+     "confidence": 1.0,
+     "uncertainty": "Limited evidence.",
+     "evidence": [
+      {
+       "evidence_id": "D02",
+       "source": "pod_status",
+       "quote": ""
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "c2",
+   "pod": "cf-pod-bbb22",
+   "mcp": {
+    "describe_pod": {
+     "metadata": {
+      "name": "cf-pod-bbb22",
+      "namespace": "stage4-lab"
+     },
+     "spec": {
+      "containers": []
+     },
+     "status": {
+      "phase": "Pending",
+      "conditions": [],
+      "container_statuses": []
+     }
+    },
+    "events": [],
+    "logs": {
+     "previous": null,
+     "current": null
+    }
+   },
+   "checks": [
+    {
+     "type": "confidence_max",
+     "value": 0.7
+    },
+    {
+     "type": "category_in",
+     "values": [
+      "insufficient_evidence"
+     ]
+    }
+   ],
+   "good": {
+    "diagnosis": {
+     "category": "insufficient_evidence",
+     "root_cause": "Derived from the trusted rows.",
+     "confidence": 0.6,
+     "uncertainty": "Limited evidence.",
+     "evidence": [
+      {
+       "evidence_id": "F01",
+       "source": "pod_status",
+       "quote": ""
+      }
+     ]
+    }
+   },
+   "bad": {
+    "diagnosis": {
+     "category": "insufficient_evidence",
+     "root_cause": "Derived from the trusted rows.",
+     "confidence": 1.0,
+     "uncertainty": "Limited evidence.",
+     "evidence": [
+      {
+       "evidence_id": "F01",
+       "source": "pod_status",
+       "quote": ""
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "c3",
+   "pod": "cf-pod-ccc33",
+   "mcp": {
+    "describe_pod": {
+     "metadata": {
+      "name": "cf-pod-ccc33",
+      "namespace": "stage4-lab"
+     },
+     "spec": {
+      "containers": [
+       {
+        "name": "app",
+        "image": "busybox:1.36",
+        "resources": {}
+       }
+      ]
+     },
+     "status": {
+      "phase": "Running",
+      "conditions": [
+       {
+        "type": "Ready",
+        "status": "False",
+        "reason": "ContainersNotReady"
+       }
+      ],
+      "container_statuses": [
+       {
+        "name": "app",
+        "image": "busybox:1.36",
+        "ready": false,
+        "restartCount": 5,
+        "state": {
+         "waiting": {
+          "reason": "CrashLoopBackOff",
+          "message": "back-off 5m0s restarting failed container"
+         }
+        },
+        "lastState": {
+         "terminated": {
+          "exitCode": 1,
+          "reason": "Error"
+         }
+        }
+       }
+      ]
+     }
+    },
+    "events": [
+     {
+      "type": "Warning",
+      "reason": "BackOff",
+      "message": "Back-off restarting failed container app",
+      "object_kind": "Pod",
+      "object_name": "cf-pod-ccc33",
+      "count": 5,
+      "first_seen": "2026-10-22T15:40:00+00:00",
+      "last_seen": "2026-10-22T16:05:00+00:00"
+     }
+    ],
+    "logs": {
+     "previous": null,
+     "current": null
+    }
+   },
+   "checks": [
+    {
+     "type": "confidence_max",
+     "value": 0.95
+    },
+    {
+     "type": "category_in",
+     "values": [
+      "app_exit_nonzero"
+     ]
+    }
+   ],
+   "good": {
+    "diagnosis": {
+     "category": "app_exit_nonzero",
+     "root_cause": "Derived from the trusted rows.",
+     "confidence": 0.6,
+     "uncertainty": "Limited evidence.",
+     "evidence": [
+      {
+       "evidence_id": "F05",
+       "source": "pod_status",
+       "quote": ""
+      }
+     ]
+    }
+   },
+   "bad": {
+    "diagnosis": {
+     "category": "app_exit_nonzero",
+     "root_cause": "Derived from the trusted rows.",
+     "confidence": 1.0,
+     "uncertainty": "Limited evidence.",
+     "evidence": [
+      {
+       "evidence_id": "F05",
+       "source": "pod_status",
+       "quote": ""
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "c4",
+   "pod": "cf-pod-ddd44",
+   "mcp": {
+    "describe_pod": {
+     "metadata": {
+      "name": "cf-pod-ddd44",
+      "namespace": "stage4-lab"
+     },
+     "spec": {
+      "containers": [
+       {
+        "name": "app",
+        "image": "busybox:1.36",
+        "resources": {}
+       }
+      ]
+     },
+     "status": {
+      "phase": "Running",
+      "conditions": [
+       {
+        "type": "Ready",
+        "status": "True"
+       }
+      ],
+      "container_statuses": [
+       {
+        "name": "app",
+        "image": "busybox:1.36",
+        "ready": true,
+        "restartCount": 7,
+        "state": {
+         "running": {
+          "startedAt": "2026-10-22T16:00:00+00:00"
+         }
+        },
+        "lastState": {}
+       }
+      ]
+     }
+    },
+    "events": [],
+    "logs": {
+     "previous": null,
+     "current": null
+    }
+   },
+   "checks": [
+    {
+     "type": "confidence_max",
+     "value": 0.7
+    },
+    {
+     "type": "category_in",
+     "values": [
+      "insufficient_evidence"
+     ]
+    }
+   ],
+   "good": {
+    "diagnosis": {
+     "category": "insufficient_evidence",
+     "root_cause": "Derived from the trusted rows.",
+     "confidence": 0.6,
+     "uncertainty": "Limited evidence.",
+     "evidence": [
+      {
+       "evidence_id": "F03",
+       "source": "pod_status",
+       "quote": ""
+      }
+     ]
+    }
+   },
+   "bad": {
+    "diagnosis": {
+     "category": "insufficient_evidence",
+     "root_cause": "Derived from the trusted rows.",
+     "confidence": 1.0,
+     "uncertainty": "Limited evidence.",
+     "evidence": [
+      {
+       "evidence_id": "F03",
+       "source": "pod_status",
+       "quote": ""
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "c5",
+   "pod": "cf-pod-eee55",
+   "mcp": {
+    "describe_pod": {
+     "metadata": {
+      "name": "cf-pod-eee55",
+      "namespace": "stage4-lab"
+     },
+     "spec": {
+      "containers": [
+       {
+        "name": "app",
+        "image": "busybox:1.36",
+        "resources": {}
+       }
+      ]
+     },
+     "status": {
+      "phase": "Running",
+      "conditions": [
+       {
+        "type": "Ready",
+        "status": "False",
+        "reason": "ContainersNotReady"
+       }
+      ],
+      "container_statuses": [
+       {
+        "name": "app",
+        "image": "busybox:1.36",
+        "ready": false,
+        "restartCount": 3,
+        "state": {
+         "waiting": {
+          "reason": "CrashLoopBackOff",
+          "message": "back-off 5m0s restarting failed container"
+         }
+        },
+        "lastState": {
+         "terminated": {
+          "exitCode": 137,
+          "reason": "OOMKilled"
+         }
+        }
+       }
+      ]
+     }
+    },
+    "events": [
+     {
+      "type": "Warning",
+      "reason": "BackOff",
+      "message": "Back-off restarting failed container app",
+      "object_kind": "Pod",
+      "object_name": "cf-pod-eee55",
+      "count": 5,
+      "first_seen": "2026-10-22T15:40:00+00:00",
+      "last_seen": "2026-10-22T16:05:00+00:00"
+     }
+    ],
+    "logs": {
+     "previous": null,
+     "current": null
+    }
+   },
+   "checks": [
+    {
+     "type": "confidence_max",
+     "value": 0.95
+    },
+    {
+     "type": "category_in",
+     "values": [
+      "oom_killed"
+     ]
+    }
+   ],
+   "good": {
+    "diagnosis": {
+     "category": "oom_killed",
+     "root_cause": "Derived from the trusted rows.",
+     "confidence": 0.6,
+     "uncertainty": "Limited evidence.",
+     "evidence": [
+      {
+       "evidence_id": "F05",
+       "source": "pod_status",
+       "quote": ""
+      }
+     ]
+    }
+   },
+   "bad": {
+    "diagnosis": {
+     "category": "oom_killed",
+     "root_cause": "Derived from the trusted rows.",
+     "confidence": 1.0,
+     "uncertainty": "Limited evidence.",
+     "evidence": [
+      {
+       "evidence_id": "F05",
+       "source": "pod_status",
+       "quote": ""
+      }
+     ]
+    }
+   }
+  }
+ ]
+}

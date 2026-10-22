@@ -1,0 +1,68 @@
+{
+ "id": "R21-image-name-mentions-oom",
+ "title": "Image named oom-killer, exits 1",
+ "pod": "name-demo-21f21",
+ "mcp": {
+  "describe_pod": {
+   "metadata": {
+    "name": "name-demo-21f21",
+    "namespace": "stage4-lab"
+   },
+   "spec": {
+    "containers": [
+     {
+      "name": "app",
+      "image": "registry.example.test/oom-killer:1",
+      "resources": {}
+     }
+    ]
+   },
+   "status": {
+    "phase": "Running",
+    "conditions": [
+     {
+      "type": "Ready",
+      "status": "False",
+      "reason": "ContainersNotReady"
+     }
+    ],
+    "container_statuses": [
+     {
+      "name": "app",
+      "image": "registry.example.test/oom-killer:1",
+      "ready": false,
+      "restartCount": 5,
+      "state": {
+       "waiting": {
+        "reason": "CrashLoopBackOff",
+        "message": "back-off 5m0s restarting failed container"
+       }
+      },
+      "lastState": {
+       "terminated": {
+        "exitCode": 1,
+        "reason": "Error"
+       }
+      }
+     }
+    ]
+   }
+  },
+  "events": [
+   {
+    "type": "Warning",
+    "reason": "BackOff",
+    "message": "Back-off restarting failed container app",
+    "object_kind": "Pod",
+    "object_name": "name-demo-21f21",
+    "count": 5,
+    "first_seen": "2026-10-22T15:40:00+00:00",
+    "last_seen": "2026-10-22T16:05:00+00:00"
+   }
+  ],
+  "logs": {
+   "previous": "fatal: license file missing",
+   "current": null
+  }
+ }
+}

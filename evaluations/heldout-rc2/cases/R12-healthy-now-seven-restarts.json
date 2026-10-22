@@ -1,0 +1,50 @@
+{
+ "id": "R12-healthy-now-seven-restarts",
+ "title": "Ready pod with 7 restarts and no events",
+ "pod": "flap-demo-12c12",
+ "mcp": {
+  "describe_pod": {
+   "metadata": {
+    "name": "flap-demo-12c12",
+    "namespace": "stage4-lab"
+   },
+   "spec": {
+    "containers": [
+     {
+      "name": "app",
+      "image": "busybox:1.36",
+      "resources": {}
+     }
+    ]
+   },
+   "status": {
+    "phase": "Running",
+    "conditions": [
+     {
+      "type": "Ready",
+      "status": "True"
+     }
+    ],
+    "container_statuses": [
+     {
+      "name": "app",
+      "image": "busybox:1.36",
+      "ready": true,
+      "restartCount": 7,
+      "state": {
+       "running": {
+        "startedAt": "2026-10-22T16:00:00+00:00"
+       }
+      },
+      "lastState": {}
+     }
+    ]
+   }
+  },
+  "events": [],
+  "logs": {
+   "previous": null,
+   "current": null
+  }
+ }
+}
