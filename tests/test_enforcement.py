@@ -326,3 +326,77 @@ def test_live_adapter_with_the_real_identity_passes_the_gate_and_reaches_the_pod
     settings = m.Settings(command=str(SERVER_PY), args=("-m", "kubernetes_mcp.server"), kubeconfig=str(READER))
     with pytest.raises(m.ToolCallError):
         asyncio.run(m.collect("stage4-lab", "nonexistent-pod", settings))
+
+
+# ---------------------------------------------------------------- independent verification of what the cluster and the MCP server really grant
+import re  # noqa: E402
+
+DEFAULT_REVIEW_RESOURCES = {"selfsubjectreviews.authentication.k8s.io", "selfsubjectaccessreviews.authorization.k8s.io", "selfsubjectrulesreviews.authorization.k8s.io"}
+EXPECTED_RULES = {"pods": {"get", "list"}, "pods/log": {"get"}, "events": {"get", "list"}}
+
+
+def _effective_rules(namespace):
+    r = subprocess.run(["kubectl", "--kubeconfig", str(READER), "auth", "can-i", "--list", "-n", namespace], capture_output=True, text=True, timeout=20)
+    rules, nonres = {}, []
+    for line in r.stdout.splitlines()[1:]:
+        mt = re.match(r"^(\S*)\s+(\[.*?\])\s+(\[.*?\])\s+\[(.*?)\]\s*$", line)
+        if not mt:
+            continue
+        resource, nr, _, verbs = mt.groups()
+        if resource:
+            rules.setdefault(resource, set()).update(verbs.split())
+        else:
+            nonres.append((nr, verbs))
+    return rules, nonres
+
+
+@live
+def test_live_effective_rules_in_the_lab_namespace_equal_the_manifest_plus_default_self_review_only():
+    rules, nonres = _effective_rules("stage4-lab")
+    review = {k: v for k, v in rules.items() if k in DEFAULT_REVIEW_RESOURCES}
+    granted = {k: v for k, v in rules.items() if k not in DEFAULT_REVIEW_RESOURCES}
+    assert granted == EXPECTED_RULES
+    assert all(v == {"create"} for v in review.values())  # self-review creates are the default for every authenticated user and change nothing
+    assert all(set(v.split()) == {"get"} for _, v in nonres)  # non-resource URLs (discovery, health, version) are read-only
+
+
+@live
+@pytest.mark.parametrize("namespace", ["kube-system", "default", "kube-public"])
+def test_live_effective_rules_in_every_other_namespace_contain_no_resource_access(namespace):
+    rules, _ = _effective_rules(namespace)
+    assert set(rules) <= DEFAULT_REVIEW_RESOURCES
+
+
+@live
+def test_live_reader_identity_is_a_namespaced_service_account_and_not_in_any_admin_group():
+    r = subprocess.run(["kubectl", "--kubeconfig", str(READER), "auth", "whoami"], capture_output=True, text=True, timeout=15).stdout
+    assert "system:serviceaccount:stage4-lab:guardian-reader" in r
+    assert "system:masters" not in r and "cluster-admin" not in r
+
+
+@live
+@needs_server
+def test_live_server_tool_catalog_matches_the_pinned_contract_exactly():
+    async def listing():
+        from mcp import ClientSession, StdioServerParameters
+        from mcp.client.stdio import stdio_client
+        env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "KUBECONFIG": str(READER), "KUBE_CONTEXT": "aiops-guardian-reader", "ALLOWED_NAMESPACES": "stage4-lab"}
+        async with stdio_client(StdioServerParameters(command=str(SERVER_PY), args=["-m", "kubernetes_mcp.server"], env=env)) as (r, w):
+            async with ClientSession(r, w) as session:
+                await session.initialize()
+                return (await session.list_tools()).tools
+    live_tools = {t.name: m._schema_shape({"inputSchema": t.inputSchema}) for t in asyncio.run(listing())}
+    pinned = {t["name"]: m._schema_shape(t) for t in FIXTURE["tools"]}
+    assert live_tools == pinned
+
+
+def test_guardian_defaults_point_at_the_reader_kubeconfig_never_the_admin_one():
+    example = (ROOT / ".env.example").read_text()
+    path = next(line.split("=", 1)[1] for line in example.splitlines() if line.startswith("GUARDIAN_KUBECONFIG="))
+    assert path.endswith("guardian-reader.kubeconfig") and "/kubeconfig" not in path.replace("guardian-reader.kubeconfig", "")
+    assert "ALLOWED_NAMESPACES" not in example or "stage4-lab" in example
+
+
+@live
+def test_live_reader_kubeconfig_passes_the_credential_check():
+    m.check_reader_kubeconfig(str(READER), m.Settings(command="x", args=(), kubeconfig=str(READER)))

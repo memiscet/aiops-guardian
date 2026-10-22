@@ -12,8 +12,9 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import interrupt
 from .audit import NullAudit, model_usage, now, read_events
-from .guardrails import ACTION_RULE, CITATION_RULE, LOG_RULE, REVIEW_RULE, normalize_plan, review_outcome, verify_citations
-from .policy import decide
+from .guardrails import ACTION_RULE, CITATION_RULE, LOG_RULE, REVIEW_RULE, normalize_plan, review_outcome, untrusted_text, verify_citations
+from .policy import REVIEW_ACTIONS, decide
+from .untrusted import action_echo
 from .pricing import Pricing, load_pricing
 from .prompts import prompt
 
@@ -169,12 +170,20 @@ def build_graph(llm=None, audit=None, pricing: Pricing | None = None, max_attemp
         return "policy" if s["review_ok"] else "report"
 
     def policy(s: State):
-        decision = decide(s["plan"]["action"], s["namespace"])
+        action = s["plan"]["action"]
+        decision, hold = decide(action, s["namespace"]), None
+        if decision == "approval_required" or action in REVIEW_ACTIONS:
+            if s.get("injection_suspected"):
+                hold = "remediation held: injection or spoofing suspected in untrusted data"
+            elif action_echo(action, untrusted_text(s["evidence"])):
+                hold = "remediation held: the action identifier is echoed in untrusted text"
+        if hold and decision != "blocked":
+            decision = "blocked"
         blocked = decision == "blocked"
         audit.event("policy", "guardrail", "failed" if blocked else "passed", failure_origin="plan" if blocked else None,
                     inputs=[audit.artifact(s["plan"])],
                     guardrail={"rule_id": ACTION_RULE[0], "rule_version": ACTION_RULE[1], "result": "fail" if blocked else "pass",
-                               "reason": f"action {s['plan']['action']!r} in namespace {s['namespace']!r}: {decision}"})
+                               "reason": f"action {action!r} in namespace {s['namespace']!r}: {decision}" + (f" ({hold})" if hold else "")})
         return {"policy": decision}
 
     def route(s: State):

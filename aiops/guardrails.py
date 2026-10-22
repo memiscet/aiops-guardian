@@ -7,6 +7,7 @@ REVIEW_RULE = "adversarial-review"
 ACTION_RULE = ("action-policy", "1")
 MAX_CITATIONS, MAX_QUOTE, MIN_QUOTE = 8, 300, 6
 SOURCES = {"pod_status", "container_state", "events", "resources", "logs"}
+_MESSAGE = re.compile(r'("message"\s*:\s*)"(?:[^"\\]|\\.)*"')
 _BLOCK = re.compile(r"<<<UNTRUSTED_LOG [^\n]*?id=(?P<id>\w+)>>>\n(?P<body>.*?)\n<<<END_UNTRUSTED_LOG id=(?P=id)>>>", re.S)
 _RELEVANT = {
     "app_exit_nonzero": re.compile(r"exitCode|CrashLoopBackOff|BackOff|Error", re.I),
@@ -20,6 +21,16 @@ def _norm(s: str) -> str:
     return "".join(s.split())
 
 
+def _blank_messages(text: str) -> str:
+    return _MESSAGE.sub(r'\1""', text)
+
+
+def untrusted_text(evidence: str) -> str:
+    """All application-influenced free text in the evidence: log blocks and every message field of the structured status."""
+    structured, logs = split_evidence(evidence)
+    return "\n".join([logs, *(m.group(0) for m in _MESSAGE.finditer(structured))])
+
+
 def split_evidence(evidence: str) -> tuple[str, str]:
     """Returns (structured text with log blocks removed, concatenated untrusted log text)."""
     logs = "\n".join(m.group("body") for m in _BLOCK.finditer(evidence))
@@ -27,29 +38,33 @@ def split_evidence(evidence: str) -> tuple[str, str]:
 
 
 def verify_citations(diagnosis: dict, evidence: str) -> tuple[bool, str]:
-    """Every cited quote must appear verbatim in the evidence, in the part matching its source; logs are never the sole basis."""
+    """Every cited quote must appear verbatim in the evidence, in the part matching its source. Provenance: logs and message fields are
+    application-influenced, so a diagnosis must rest on at least one *trusted fact* (a quote that survives blanking all message fields)."""
     cites = diagnosis.get("evidence")
     if not isinstance(cites, list) or not 1 <= len(cites) <= MAX_CITATIONS:
         return False, f"expected 1-{MAX_CITATIONS} citations"
-    structured, logs = (_norm(x) for x in split_evidence(evidence))
-    structured_hits = 0
+    structured_raw, logs_raw = split_evidence(evidence)
+    structured, logs, skeleton = _norm(structured_raw), _norm(logs_raw), _norm(_blank_messages(structured_raw))
+    trusted_quotes = []
     for c in cites:
-        source, quote = (c.get("source"), _norm(str(c.get("quote", "")))) if isinstance(c, dict) else (None, "")
+        raw, source = (str(c.get("quote", "")), c.get("source")) if isinstance(c, dict) else ("", None)
+        quote = _norm(raw)
         if source not in SOURCES or not MIN_QUOTE <= len(quote) <= MAX_QUOTE:
             return False, "citation has invalid source or quote"
         if source == "logs":
             if quote not in logs:
                 return False, f"log quote not found in collected logs: {quote[:60]!r}"
         elif quote in structured:
-            structured_hits += 1
+            if _norm(_blank_messages(raw)) in skeleton:
+                trusted_quotes.append(raw)
         else:
             return False, f"{source} quote not found in structured evidence: {quote[:60]!r}"
     category = diagnosis.get("category")
-    if category != "insufficient_evidence" and not structured_hits:
-        return False, "diagnosis cites only untrusted logs"
+    if category != "insufficient_evidence" and not trusted_quotes:
+        return False, "diagnosis rests only on untrusted free text (logs or message fields), not on trusted status facts"
     pattern = _RELEVANT.get(category)
-    if pattern and not any(pattern.search(str(c.get("quote", ""))) for c in cites):
-        return False, f"no citation relevant to category {category}"
+    if pattern and not any(pattern.search(q) for q in trusted_quotes):
+        return False, f"no trusted citation relevant to category {category}"
     return True, "all citations verified verbatim against collected evidence"
 
 

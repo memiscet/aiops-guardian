@@ -8,7 +8,7 @@ How to read the status column: **Verified** = observed passing in this session; 
 ```bash
 source .venv/bin/activate
 python -m compileall -q aiops tests           # OK
-python -m pytest -q                            # 413 passed, 0 skipped (includes MiniStack and lab-cluster tests; those skip if the lab is down)
+python -m pytest -q                            # 497 passed, 0 skipped (includes MiniStack and lab-cluster tests; those skip if the lab is down)
 python -m aiops.evaluation                     # offline gold cases: 6/6, reviewer probes 3/3 + control 1/1, safety_failures=0 (harness only)
 GUARDIAN_ALLOW_PAID_EVAL=yes python -m aiops.evaluation --live   # paid, bounded; see section 4
 python -m aiops.evaluation --heldout           # held-out oracle run, offline: 36/36 (harness only)
@@ -34,6 +34,8 @@ Environment observed: Python 3.14.7, langgraph 1.2.16, openai 2.54.0, mcp 1.30.0
 | `action-policy` v1 (allowlist/blocklist, namespace check; fail-closed on unknown action) | `tests/test_policy.py`, gold case 05 (`delete_namespace` blocked) | Verified |
 | Cluster-identity gate and tool allowlist/schema pinning in the MCP adapter | `tests/test_mcp_adapter.py` (38 tests) and a live run: admin credentials substituted for the reader were refused (see handoff) | Verified |
 | Independent enforcement beyond model compliance (`tests/test_enforcement.py`): action policy blocks every action in other namespaces (70 combinations) and unknown actions; adapter refuses other namespaces before any MCP call; 10 other MCP tools and invented names refused; AST scan: every MCP call site uses an allow-listed name and the package has no subprocess, kubernetes client, eval or shell use; hostile-model graph tests under patched subprocess/socket; RBAC manifest and live `can-i` matrix (21 live tests, read-only) deny secrets, other namespaces, cluster scope, mutation and exec; server guard and RBAC each refuse `kube-system` independently | Verified (these controls are proven without a model; the real model has still never tried to cross them) |
+| Hardened untrusted-data handling (release candidate `rc1-heldout-ready`, `aiops/untrusted.py`, `tests/test_untrusted.py`, `tests/test_hardening.py`): signals in 13 languages with homoglyph, invisible-character and mixed-script folding; role markers and chat tokens; control-vocabulary references; analyst- or reviewer-shaped JSON and YAML (nested, embedded, escaped); defanging; and structural layers that do not depend on detection: a diagnosis must rest on a trusted status fact (message fields and logs cannot establish it), remediation is held on suspected injection or an echoed action identifier, policy and approval unchanged | Verified offline, including regression tests for both earlier gaps (German instruction, analyst-shaped JSON) and an undetected-language (Polish) case; effect on a real model unmeasured |
+| Independent authorization verification: reader kubeconfig must be one token-only namespaced identity (no client certs, exec, passwords, extra users or contexts); live effective-permission listing equals the RBAC manifest plus default self-review only, in the lab namespace and three other namespaces; reader is a namespaced service account outside admin groups; live MCP tool catalog equals the pinned contract | Verified live (read-only) |
 | Untrusted-log handling: redaction, size caps, random-delimiter wrapping, injection flag; injected text never cited | `test_prompt_injection_...`, gold case 04 | Verified (heuristic detection; see limits) |
 | Adversarial review agent (`adversarial-review`, prompt `review-2026-10-22.1`), between plan and action policy; can only tighten (fail verdict or any high-severity finding rejects) | Offline: `tests/test_workflow.py`, `tests/test_guardrails.py`, `tests/test_evaluation.py`. Live: four reviewer probes (three flawed outputs we wrote, one sound control) in each of three runs: 9/9 flawed outputs caught, 3/3 controls passed. In case runs the live reviewer rejected one sound-looking output (see section 4) | Verified on a small, self-authored probe set; recall on real model errors unknown. Independent-reviewer comparison designed (72 fixed items, pre-registered rule, `docs/REVIEWER-COMPARISON-PROTOCOL.md`), harness tested offline, not run live |
 | Hooks/sentinel files as in `stage-four-certification/guardrails/` | Not implemented; controls are Python functions | Gap / Unknown (whether the rubric requires files) |
@@ -108,9 +110,9 @@ What the live v2 runs show (and do not show):
 1. Held-out live result: none yet (about 108 calls, estimated under $0.06, needs approval).
 2. Independent-reviewer comparison: not run (needs a chosen model, its dated price, and approval).
 3. Policy block and approval denial have never been triggered by a real model; they are proven by hostile-model tests, static analysis and RBAC.
-4. Dev-set live numbers describe a superseded system version.
+4. Dev-set live numbers describe superseded system versions; the release candidate has no live result yet (see `docs/RELEASE-CANDIDATE.md`).
 5. Same author for system and test sets; small samples; heuristic keyword grading of free text.
-6. Known detector limits (non-English instructions, JSON impersonation) and adapter gaps (init-container statuses, condition messages).
+6. Detector limits remain by nature (languages outside the list such as Polish, paraphrase, encodings); the two earlier specific gaps (German instruction, analyst-shaped JSON) are closed. Condition messages are now in the evidence; init-container statuses are supported by the adapter but the current MCP server does not return them.
 7. No Stage 3 per-agent evidence; approval unauthenticated; in-memory checkpoints; local audit file.
 
 ## Items that need confirmation

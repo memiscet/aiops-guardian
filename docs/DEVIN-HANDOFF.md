@@ -334,3 +334,63 @@ Side effects of the test run: the existing MiniStack integration test writes and
 3. Decide whether to close detector and adapter gaps (init-container statuses, condition messages, multilingual injection) before freezing, accepting that dev results must then be re-measured.
 4. Authenticated, expiring approvals and durable checkpoints.
 5. Confirm the Stage 4 rubric.
+
+---
+
+# Release-candidate hardening milestone (requested as "Milestone 5"; follows the held-out milestone above) (2026-10-22)
+
+Starting point: commit `07d2b1f`. **No paid model call, no live remediation, no reviewer comparison.** Estimated spend $0.00. The lab cluster was only read (reader identity, `can-i`, `whoami`, MCP read calls). Full detail of the candidate: `docs/RELEASE-CANDIDATE.md`; machine-readable pin: `release/rc-manifest.json`.
+
+## Summary
+| Item | Result |
+|---|---|
+| Multilingual and analyst-role-spoof hardening without relying only on keywords | Done: signals in 13 languages, homoglyph and invisible-character folding, role markers, analyst/reviewer-shaped JSON and YAML, defanging, plus structural controls |
+| Independent MCP authorization and RBAC verification | Done: kubeconfig credential check (code) and live effective-permission, identity and tool-catalog checks (tests) |
+| Init-container statuses and pod condition messages in evidence | Condition messages: done. Init-container statuses: adapter support done and tested; **the current MCP server's `describe_pod` does not return them** (verified live), so no live effect yet |
+| Regression tests for both known gaps | Done (`tests/test_hardening.py`, `tests/test_untrusted.py`, updates to `tests/test_heldout.py`) |
+| Frozen held-out inputs, gold and grader unchanged | Verified by hash and by `git diff` (empty); `tests/test_frozen.py` |
+| Full offline suite | `compileall` OK; `pytest` **497 passed, 0 skipped**; dev eval 6/6; held-out oracle run 36/36; secret check clean (110 files) |
+| Release candidate committed | Tag `rc1-heldout-ready`; `python scripts/make_rc_manifest.py --verify` |
+
+## Design of the hardening (why it is not just a keyword list)
+`aiops/untrusted.py` documents the layers. Detection (layer 1) is explicitly incomplete. The controls that do not depend on it:
+1. **Provenance rule** (`guardrails.verify_citations`): a diagnosis must be supported by a *trusted fact*, a cited quote that still appears after every `message` field is blanked. Logs and event, termination and condition messages can accompany a diagnosis but never establish it, and category relevance must come from a trusted quote. Presented evidence is unchanged; only the rule changed.
+2. **Remediation hold** (`workflow.policy`): any review-class action (restart, rollback, memory change) is blocked when injection or spoofing is suspected or when the action's identifier appears in untrusted text. The deterministic policy and approval gate are untouched, and the reviewer still only tightens.
+3. **Defanging** keeps surrounding text but replaces analyst-shaped JSON/YAML, role prefixes, chat tokens and invisible characters, so untrusted text cannot pose as protocol and cannot be quoted back as a "citation".
+4. **Audit** records signal names only, never the untrusted text.
+
+## Findings during the work
+- A real defect found by the new tests: the first version of the confusable-character mapping rewrote Cyrillic text, which broke the Russian phrase; non-Latin patterns now match on text without confusable mapping.
+- A second defect: spoof detection looked only at top-level JSON keys; it now recurses.
+- Role-prefix detection was narrowed to `system`, `assistant` and `developer` lines to avoid flagging ordinary `user: alice` log lines.
+- The effective RBAC listing includes three default self-review `create` rules and read-only non-resource URLs (discovery, health, version). These are default for every authenticated user and change no cluster state; the tests allow exactly these.
+
+## Evidence and frozen-asset results
+- Of 42 cases (6 dev, 36 held-out) only the 8 injection cases (dev 04, held-out I01 to I07) changed evidence versus the `07d2b1f` baseline (`release/evidence-baseline-07d2b1f.json`); the other 34 are byte-identical, including every held-out case without injection.
+- Both known gaps now flag: I06 with `instruction-phrase-multilingual`, I02 with `role-spoof-structure` (and `control-vocabulary`). The frozen gold keeps `expect_injection_flag: null` for them, so the grader still skips that check and is unchanged.
+- Test expectations changed (tests only, not gold): a manipulated plan on injection cases now ends `blocked` (hold) instead of `denied`; the two "detector limit" tests became regression tests that assert the cases are flagged.
+
+## Tests and commands
+```bash
+source .venv/bin/activate
+python -m compileall -q aiops tests scripts                 # OK
+python -m pytest -q                                          # 497 passed, 0 skipped (68.6 s)
+python -m aiops.evaluation                                   # dev, offline: 6/6, probes 3/3 + control 1/1
+python -m aiops.evaluation --heldout                         # held-out oracle run, offline: 36/36
+python -m aiops.compare --plan                               # sends nothing
+python scripts/check_secrets.py                              # no secrets found (110 files)
+python scripts/make_rc_manifest.py --verify                  # release candidate matches its manifest
+```
+New tests: `test_untrusted.py` (43), `test_hardening.py` (17), `test_frozen.py` (3), plus additions to `test_guardrails.py`, `test_mcp_adapter.py`, `test_heldout.py`, `test_enforcement.py` (7 new live read-only checks).
+
+## Side effects
+Only read-only calls to the lab cluster; MiniStack touched only by the existing integration test (writes and deletes its own objects). New files: `aiops/untrusted.py`, `release/`, `scripts/make_rc_manifest.py`, three test files, `docs/RELEASE-CANDIDATE.md`. Existing file edits: `aiops/guardrails.py`, `aiops/mcp_adapter.py`, `aiops/workflow.py`, `requirements.txt`, four test files, documents.
+
+## Blockers and remaining risks
+See `docs/RELEASE-CANDIDATE.md` (ten items). Highest impact: detection cannot be complete (an undetected injection can still push a remediation *proposal* to human approval); the provenance rule may reduce recall with a real model; the reviewer is not independent; approval is unauthenticated; the held-out set is author-written and small; init-container statuses need an MCP server change to have any live effect.
+
+## Next steps
+1. Owner: approve the controlled held-out run on the tagged candidate (`GUARDIAN_ALLOW_PAID_EVAL=yes python -m aiops.evaluation --heldout --live`; about 108 calls, estimated under $0.06, hard limit $0.10), after `--verify` passes. First complete result for this fingerprint is the result of record.
+2. Owner: decide whether `kubernetes-mcp-server` should be extended to return init-container statuses (changes the pinned contract; would need a new pin and re-verification).
+3. Owner: choose and price a second reviewer model if the independent-reviewer comparison is wanted.
+4. Authenticated, expiring approvals and durable checkpoints; confirm the Stage 4 rubric.

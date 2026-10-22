@@ -1,0 +1,120 @@
+{
+ "release_candidate": "rc1-heldout-ready",
+ "generated": "2026-10-22",
+ "base_commit": "07d2b1f1e0c8cfca81b00a1441aa8c03b38c30ab",
+ "base_commit_subject": "Add held-out set, independent enforcement tests, reviewer comparison harness",
+ "working_tree_dirty_when_generated": true,
+ "source_tree_sha256": "c1f575fa2d5e5a6951a028d9a27814e34900530bef39ffac36859258e7389919",
+ "source_tree_files": 100,
+ "system_fingerprint": {
+  "code_and_config_sha256": "38567f5f75c584d4f99ec983e21fa99ebc7655f59d9a345e8cd6a570a578c403",
+  "prompt_versions": {
+   "diagnosis": "diagnosis-2026-10-22.3",
+   "planning": "planning-2026-10-22.2",
+   "review": "review-2026-10-22.1"
+  },
+  "prompt_sha256": {
+   "diagnosis": "ca7fcbdd0327b22e26c968ab7a7ef5a0c546830357b5ad9497b479afd76bf0d1",
+   "planning": "ac0f7a1bdf7a3d367351919139142456bfd500373b8b57c189b8c748a4d3b382",
+   "review": "436bbd05990c6e421e01f8e296fb85cad8ec7f248f95b2e75dd14d33e0224231"
+  }
+ },
+ "model_config": {
+  "provider": "openai",
+  "api": "responses.parse (structured outputs)",
+  "model": "gpt-4.1-mini",
+  "max_output_tokens_per_call": 800,
+  "client_max_retries": 0,
+  "request_timeout_s": 60.0,
+  "workflow_max_attempts": 1,
+  "temperature": "API default (not set)",
+  "reviewer_model": "same client and model as diagnosis and planning (no independent reviewer configured)",
+  "pricing_version": "openai-2026-10-22.1",
+  "pricing_as_of": "2026-10-22",
+  "price_table_models": [
+   "gpt-4.1-mini"
+  ]
+ },
+ "limits": {
+  "dev": {
+   "max_cases": 6,
+   "max_model_calls": 24,
+   "max_output_tokens_per_call": 800,
+   "max_total_tokens": 80000,
+   "max_estimated_cost_usd": 0.1
+  },
+  "heldout": {
+   "max_cases": 40,
+   "max_model_calls": 120,
+   "max_output_tokens_per_call": 800,
+   "max_total_tokens": 150000,
+   "max_estimated_cost_usd": 0.1
+  }
+ },
+ "frozen_assets": {
+  "heldout_manifest_sha256": "75b0e0a53a25a25d670095c8b49155e88f15b882db286ee78ff71b97764c255b",
+  "judge_source_sha256": "c8e05446178d31abaf79d7d0811b154c294e672e8268d6af3277bae6c0884c31",
+  "load_heldout_source_sha256": "fdc080c92ac96c732ef81e093d6ccdedf539aca12fdfe985d68ac1354883d26b",
+  "heldout_cases": 36,
+  "baseline_commit": "07d2b1f"
+ },
+ "environment": {
+  "python": "3.14.7",
+  "packages": {
+   "openai": "2.54.0",
+   "langgraph": "1.2.16",
+   "mcp": "1.30.0",
+   "pydantic": "2.14.1",
+   "pytest": "9.1.1",
+   "jsonschema": "4.26.0",
+   "PyYAML": "6.0.3",
+   "boto3": "1.43.117"
+  }
+ },
+ "offline_results": {
+  "pytest": "497 passed, 0 skipped in 68.59s",
+  "dev_set": {
+   "cases": 6,
+   "passed": 6,
+   "accuracy": 1.0,
+   "safety_failures": 0,
+   "errors": 0,
+   "unsafe_proposals": 1,
+   "controls_exercised": "2/2 targeted cases triggered their control",
+   "reviewer_probes": {
+    "flawed_outputs": 3,
+    "caught": 3,
+    "controls": 1,
+    "controls_passed": 1
+   }
+  },
+  "heldout_oracle_run": {
+   "cases": 36,
+   "passed": 36,
+   "accuracy": 1.0,
+   "safety_failures": 0,
+   "errors": 0,
+   "by_kind": {
+    "injection": {
+     "cases": 7,
+     "passed": 7
+    },
+    "misleading": {
+     "cases": 7,
+     "passed": 7
+    },
+    "missing": {
+     "cases": 8,
+     "passed": 8
+    },
+    "variant": {
+     "cases": 14,
+     "passed": 14
+    }
+   },
+   "model_calls": 108
+  },
+  "scope": "offline: scripted model answers; checks the harness, grader and deterministic controls, not language-model quality"
+ },
+ "live_results": "none for this release candidate; no paid call has been made against it"
+}
