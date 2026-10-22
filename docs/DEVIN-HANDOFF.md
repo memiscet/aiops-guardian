@@ -394,3 +394,27 @@ See `docs/RELEASE-CANDIDATE.md` (ten items). Highest impact: detection cannot be
 2. Owner: decide whether `kubernetes-mcp-server` should be extended to return init-container statuses (changes the pinned contract; would need a new pin and re-verification).
 3. Owner: choose and price a second reviewer model if the independent-reviewer comparison is wanted.
 4. Authenticated, expiring approvals and durable checkpoints; confirm the Stage 4 rubric.
+
+---
+
+# Controlled held-out evaluation of `rc1-heldout-ready` (2026-10-22, owner-authorized)
+
+Starting point: commit `1b855ba` (tag `rc1-heldout-ready`). One paid run, executed once; no code, prompt, gold, grader or configuration change; no retries; no reviewer comparison, MCP contract change or remediation. Full report: `docs/OPENAI-HANDOFF.md` section 13.
+
+## Preflight (all passed)
+Clean tree; HEAD equals the tag; `make_rc_manifest.py --verify` passed; frozen held-out and grader hashes unchanged; limits $0.10 / 120 calls with no environment overrides; the key in `.env` differs from the exposed one (prefix and suffix comparison only), was edited after the exposure, and authenticated on a free `models.retrieve` call (**revocation of the old key cannot be proven from here; confirm in the dashboard**); model `gpt-4.1-mini` and the dated price table matched OpenAI's model page re-fetched the same day; remediation disabled (no executor; 170 offline enforcement and frozen-asset tests passed); audit chain intact (384 events).
+
+## Run and result
+`GUARDIAN_ALLOW_PAID_EVAL=yes python -m aiops.evaluation --heldout --live` (14:43:21 to 14:46:04). **25/36 = 0.694**; misleading 7/7, injection 5/7, variants 9/14, missing evidence 4/8; **0 safety failures, 0 unsafe proposals, 0 errors**; citations: 33/36 diagnoses passed the verbatim guardrail (3 non-verbatim quotes); model `gpt-4.1-mini-2025-04-14` for all 102 calls; 77,587 input and 9,167 output tokens; estimated cost $0.0457 (estimate, not a bill); latency median 1.46 s. Audit: chain intact over 623 events; 239 new events valid against both schemas; 341 artifact references, no missing or mismatched; no key-like string in the run's artifacts.
+
+## Preserved
+`results/heldout-live-rc1/heldout-live-rc1-first-run.json` (read-only, SHA-256 `431d98ed85403ca117c1dc1f779618e2674672d23d6983c7f75726f4b7beda0f`) and a local-only audit archive `heldout-live-rc1-first-run-audit.tar.gz` (SHA-256 `2c8292e17c10eab1abd036301ea4634e1a20b3e6f55f96d6caee4045f1480e4f`; git-ignored by the archive rule). The report was first written to `var/eval/heldout-live-e6ddc731.json`.
+
+## Files changed in the repository after the run (documentation and results only)
+`docs/OPENAI-HANDOFF.md` (section 13), `docs/stage4-evidence.md`, `docs/RELEASE-CANDIDATE.md`, `docs/DEVIN-HANDOFF.md`, `results/heldout-live-rc1/`. The result directory is outside the hashed release tree on purpose, so `make_rc_manifest.py --verify` keeps passing.
+
+## Side effects
+OpenAI: one free authentication check and 102 inference calls. Local files only otherwise. Kubernetes cluster, MiniStack, kubeconfigs and `.env` untouched.
+
+## Next steps
+Confirm key revocation and reconcile billing; decide whether to repeat the run at the same fingerprint to measure variability (about $0.05 each, not for tuning); decide whether to change the system (new fingerprint, new candidate, fresh held-out set); independent-reviewer comparison still needs a chosen model, a dated price and approval.
