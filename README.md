@@ -1,66 +1,82 @@
-# AIOps Guardian — Stage 4 starter
+# AIOps Guardian
 
-## Scope
-This is a **dry-run prototype**: OpenAI LLM diagnosis + planning, read-only MCP evidence collection, deterministic policy decision, LangGraph human approval interrupt, and response token accounting. It does **not** perform remediation, persist checkpoints across process restarts, or claim to provide full audit-grade monitoring. No real AWS is required.
+A local lab for a **read-only, evaluated AI Kubernetes incident-diagnosis workflow**. It collects evidence from a Kubernetes cluster through a restricted MCP server, asks a hosted OpenAI model for a diagnosis, a plan and an adversarial review, and then applies deterministic policy, guardrails and a human-approval gate. Every step is written to a hash-chained audit trail. It never executes remediation.
 
-## Installation
-Requires Python 3.11+, Kubernetes CLI access to your Vagrant cluster, and an OpenAI API key (API billing separate from ChatGPT subscription).
+> **Status: research lab, not a production system.** No real AWS is used (a local emulator stands in), actions are dry runs, and the Stage 4 certification rubric it targets has not been confirmed from an official source. Read [Limitations](#honest-limitations) before relying on any number below.
+
+## What it does
+
+```mermaid
+flowchart LR
+  K[(Kubernetes lab cluster<br/>namespace stage4-lab)] -- read-only RBAC --> M[Restricted MCP server<br/>4 allow-listed tools]
+  M --> A[Adapter: identity gate, redaction,<br/>evidence table with ids, quarantine]
+  A --> W{{LangGraph workflow}}
+  W -->|diagnosis, plan, review| O[(OpenAI model)]
+  W --> P[Deterministic policy<br/>+ approval gate]
+  W --> L[(Hash-chained audit trail)]
+  W --> S[(MiniStack S3 / SQS<br/>127.0.0.1:4570)]
+```
+
+Workflow: `collect evidence -> diagnose -> verify citations -> interpret -> plan -> review -> policy -> (approval) -> report -> publish`. Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Quick start (no cluster, no API key, no cost)
+
+Requires Python 3.12+ (validated on 3.14.7).
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+git clone https://github.com/memiscet/aiops-guardian.git
+cd aiops-guardian
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env
-# Set OPENAI_API_KEY in .env and adjust OPENAI_MODEL to one available to your account.
-pytest -q
+python -m pytest -q                      # 585 passed on the validated machine (tests that need the lab skip themselves)
+python -m aiops.evaluation2 --suite heldout-rc2   # offline: scripted reference answers, harness check only
 ```
 
-## First run: simulated CrashLoopBackOff evidence
-```bash
-python -m aiops.run --pod crash-demo-abc --fixture configs/crashloop-evidence.txt
+Full walk-through: [docs/QUICKSTART.md](docs/QUICKSTART.md). The complete lab (Vagrant cluster, MiniStack, MCP server, OpenAI) is in [docs/INSTALLATION.md](docs/INSTALLATION.md).
+
+## Documentation
+
+| Document | Purpose |
+|---|---|
+| [docs/QUICKSTART.md](docs/QUICKSTART.md) | Offline path first, then the live lab in order |
+| [docs/INSTALLATION.md](docs/INSTALLATION.md) | Prerequisites, Vagrant cluster, RBAC, MCP, MiniStack (port 4570), OpenAI configuration, safe cleanup |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Components, data flow, trust model, deterministic controls |
+| [docs/OPERATIONS.md](docs/OPERATIONS.md) | Running an analysis, the CrashLoopBackOff test, approvals, audit verification, token refresh, troubleshooting |
+| [docs/EVALUATIONS.md](docs/EVALUATIONS.md) | Suites, grading dimensions, protocols, recorded results, costs |
+| [docs/SECURITY.md](docs/SECURITY.md) | Threat model, controls, publication safety, known gaps |
+| [docs/RELEASES.md](docs/RELEASES.md) | RC1 and RC2 history, immutability, reproducibility |
+
+Working notes from the build (milestone handoffs, evidence map, RC plans) are in `docs/` too: `stage4-evidence.md`, `RC2-PLAN.md`, `RC2-EVIDENCE-GAPS.md`, `RC2-REVIEWER-INVESTIGATION.md`, `RELEASE-CANDIDATE.md`, `DEVIN-HANDOFF.md`, `OPENAI-HANDOFF.md`, `REPOSITORY-INVENTORY.md`.
+
+## Safety design in one paragraph
+
+The Kubernetes identity the agent uses can only `get`/`list` pods and events and `get` pod logs in one namespace (verified by tests against the live RBAC). The MCP adapter can call only four pinned tools, refuses any other cluster identity, redacts secrets, and treats logs and messages as untrusted data: injected text is flagged, defanged and quarantined, and can never be the basis of a diagnosis. Destructive actions are blocked by a deterministic policy, not by model advice; restart, rollback and memory changes need an explicit human `True`, and even then are dry runs. See [docs/SECURITY.md](docs/SECURITY.md).
+
+## Results so far (summary; details and caveats in [docs/EVALUATIONS.md](docs/EVALUATIONS.md))
+
+| Release | Evidence | Result |
+|---|---|---|
+| RC1 (`rc1-heldout-ready`) | One live run on a frozen 36-case held-out set | **25/36 (0.694)**, 0 safety failures, estimated cost $0.0457 |
+| RC2 (`rc2-offline-tested`) | Offline only; reference answers; replay of RC1 outputs | 557 tests pass; replay 25/36 to 32/36 (development counterfactual); **no live result** |
+
+## Honest limitations
+
+- RC1's number is one run on a small, author-written set; the model also reviews itself. RC2 has **no live measurement**; do not read the replay as an expected live rate.
+- Approval is an unauthenticated console prompt; checkpoints are in memory; the audit file is local and tamper-evident only.
+- The live path needs a separate read-only Kubernetes MCP server that is **not part of this repository** (see [docs/INSTALLATION.md](docs/INSTALLATION.md#4-kubernetes-mcp-server-and-restricted-access)).
+- MiniStack proves nothing about real AWS behavior. The model has never proposed a destructive action in a live run, so the policy block is verified by tests, not observed behavior.
+- No license file is included yet; the owner has not chosen one.
+
+## Repository layout
+
 ```
-The model is nondeterministic. The policy tests use a fake model and are deterministic. Your first real-run recommendation may vary.
-
-## Real Vagrant Kubernetes test
-```bash
-kubectl apply -f k8s/crashloop.yaml
-kubectl -n stage4-lab rollout status deploy/crash-demo --timeout=30s || true
-kubectl -n stage4-lab get pods
-kubectl -n stage4-lab describe pod <actual-pod-name>
-kubectl -n stage4-lab logs <actual-pod-name> --previous
+aiops/            workflow, adapter, evidence table, guardrails, grading, evaluators, audit, pricing, sinks
+configs/          pricing, limits, fixture
+evaluations/      dev cases, RC1 held-out (frozen), regression index, RC2 held-out (frozen), prompt-component sets
+infrastructure/   vagrant (3-node cluster), kubernetes (RBAC, reader kubeconfig script), ministack (compose, bootstrap)
+k8s/              crashloop.yaml (intentionally crashing demo workload)
+release/ results/ RC manifests, frozen hashes, recorded results
+scripts/          generators, manifests, secret and history scans, replay
+schemas/ tests/   audit-event schemas; 550+ tests
+docs/             documentation and build notes
 ```
-Copy `.env.example` to `.env`. The adapter (`aiops/mcp_adapter.py`) calls only `current_context`, `describe_pod`, `get_recent_events` and `get_pod_logs` on the existing `kubernetes-mcp-server`, using the restricted `guardian-reader` kubeconfig (see `docs/DEVIN-HANDOFF.md`). It refuses to run if the cluster identity does not match.
-
-```bash
-python -m aiops.run --namespace stage4-lab --pod <actual-pod-name>
-```
-
-## MiniStack (phase 2, optional for first incident)
-```bash
-docker run --rm -p 127.0.0.1:4570:4570 -e GATEWAY_PORT=4570 ministackorg/ministack
-curl http://localhost:4570/_ministack/health
-AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 \
-  aws --endpoint-url=http://localhost:4570 s3 mb s3://aiops-guardian-evidence
-```
-This starter intentionally does not depend on MiniStack to diagnose a Kubernetes pod. Later, save sanitized structured reports to S3 and incident events to SQS, testing the exact MiniStack operations used.
-
-## Evaluations, audit trail and secret check
-```bash
-python -m aiops.evaluation                      # offline gold cases (no API calls); writes var/eval/*.json
-GUARDIAN_ALLOW_PAID_EVAL=yes python -m aiops.evaluation --live   # paid; bounded by configs/eval-limits.json; needs owner approval
-python scripts/check_secrets.py                 # run before every commit
-```
-Reports and events are also written to local MiniStack (S3/SQS on port 4570) unless `--no-publish` is given. Every workflow run appends hash-chained events to `var/audit/events.jsonl` (git-ignored). Costs are estimates from `configs/pricing.json`, not billed amounts. See `docs/stage4-evidence.md` and `docs/DEVIN-HANDOFF.md`.
-
-## Stage 4 gaps and follow-up
-1. Capture per-step trace IDs, prompts versions, test IDs, cost estimates and outcomes in durable stores (e.g., Langfuse/OpenTelemetry).
-2. Build golden datasets for prompt-level and end-to-end evals; report false diagnoses and unsafe proposals, not only pass/fail.
-3. Add isolated remediation *executor* guarded by code-based authorization (not an LLM). Include authenticated, time-limited approvals.
-4. Configure a durable checkpoint backend before considering deployment or restart-resume workflows.
-5. Add prompt injection tests, timeouts, retries, and sanitize data sent to the hosted model.
-6. Apply cloud-like least privilege for MiniStack, but recognize it cannot prove genuine AWS security enforcement.
-7. Confirm Improving's official Stage 4 submission rubric.
-
-## Security reminders
-Never put real secrets in simulated logs. `.env` must remain untracked. The current approval terminal input is for demonstration, **not production-grade identity/authorization**.
-# aiops-guardian

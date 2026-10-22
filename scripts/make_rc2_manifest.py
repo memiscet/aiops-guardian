@@ -31,6 +31,14 @@ def tree_hash() -> tuple[str, int]:
     return h.hexdigest(), len(files)
 
 
+def tree_hash_rev(rev: str) -> str:
+    files = sorted(f for f in git("ls-tree", "-r", "--name-only", rev, "--", *TREE_DIRS).splitlines() if f not in EXCLUDE)
+    h = hashlib.sha256()
+    for f in files:
+        h.update(f.encode() + b"\0" + subprocess.run(["git", "show", f"{rev}:{f}"], cwd=ROOT, capture_output=True).stdout + b"\0")
+    return h.hexdigest()
+
+
 def build(pytest_line: str | None) -> dict:
     from aiops import component_eval as ce, evaluation as ev, evaluation2 as e2
     from aiops.limits import Limits
@@ -75,7 +83,13 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--pytest", default=None)
     ap.add_argument("--verify", action="store_true")
+    ap.add_argument("--verify-rev", default=None, help="verify the RC2 manifest committed at a git revision against that revision's files")
     a = ap.parse_args()
+    if a.verify_rev:
+        m = json.loads(git("show", f"{a.verify_rev}:release/rc2-manifest.json"))
+        ok = tree_hash_rev(a.verify_rev) == m["source_tree_sha256"]
+        print(f"RC2 verified at {a.verify_rev}: source tree matches its manifest" if ok else f"MISMATCH at {a.verify_rev}")
+        return 0 if ok else 1
     if a.verify:
         from aiops import evaluation as ev
         m = json.loads(OUT.read_text())

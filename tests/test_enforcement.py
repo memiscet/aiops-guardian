@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parent.parent
 READER = ROOT / "infrastructure" / "vagrant" / ".cluster" / "guardian-reader.kubeconfig"
 ALL_ACTIONS = list(get_args(Plan.model_fields["action"].annotation))
 FIXTURE = json.loads((ROOT / "tests" / "fixtures" / "mcp_k8s_tools.json").read_text())
-SERVER_PY = Path("/Users/memis.cetinkaya/repos/kubernetes-mcp-server/.venv/bin/python")
+SERVER_PY = Path(os.environ.get("MCP_SERVER_PYTHON", Path.home() / "repos" / "kubernetes-mcp-server" / ".venv" / "bin" / "python"))
 
 
 # ---------------------------------------------------------------- namespace protection

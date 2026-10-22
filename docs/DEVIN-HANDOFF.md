@@ -1,6 +1,6 @@
 # DEVIN-HANDOFF: Milestone 2 (2026-10-22)
 
-Repo: `/Users/memis.cetinkaya/repos/aiops-guardian`, branch `master`, no commits yet (everything untracked; I made no commits).
+Repo: `<repo>`, branch `master`, no commits yet (everything untracked; I made no commits).
 Earlier context: `docs/REPOSITORY-INVENTORY.md`.
 
 ## Result summary

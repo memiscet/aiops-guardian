@@ -2,7 +2,7 @@
 
 Self-contained status report for an external reviewer who cannot see the repository. Everything below was observed in the repository or the local lab unless marked otherwise. It is a local lab for the owner's Improving Stage 4 AI certification project, not a production remediation system.
 
-- Repository: `/Users/memis.cetinkaya/repos/aiops-guardian`, branch `master`, not pushed (no remote). This document was first written at commit `4d34c28`; section 11 and the updated counts below cover the held-out milestone (see `git log` for the current commit).
+- Repository: `<repo>`, branch `master`, not pushed (no remote). This document was first written at commit `4d34c28`; section 11 and the updated counts below cover the held-out milestone (see `git log` for the current commit).
 - Longer detail: `docs/DEVIN-HANDOFF.md` (milestone-by-milestone), `docs/stage4-evidence.md` (requirement-to-evidence map), `docs/REPOSITORY-INVENTORY.md` (existing repos found and reused).
 
 ## 1. What it is

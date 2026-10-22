@@ -3,6 +3,7 @@ import copy
 import hashlib
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -96,7 +97,7 @@ def test_rc1_is_immutable_tag_report_and_manifest():
 
 
 def test_rc1_manifest_verifies_at_the_tag_not_the_working_tree():
-    r = subprocess.run(["python", "scripts/make_rc_manifest.py", "--verify-rev", "rc1-heldout-ready"], cwd=ROOT, capture_output=True, text=True)
+    r = subprocess.run([sys.executable, "scripts/make_rc_manifest.py", "--verify-rev", "rc1-heldout-ready"], cwd=ROOT, capture_output=True, text=True)
     assert r.returncode == 0 and "verified at rc1-heldout-ready" in r.stdout
 
 

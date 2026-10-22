@@ -1,5 +1,7 @@
 # AIOps Guardian — instructions for Devin Desktop and coding agents
 
+> Historical note: these are the original starter instructions. The "Current code inventory" and work package below describe the starting point, not the present state. For the current system, start with `README.md` and `docs/ARCHITECTURE.md`; the boundaries in "Local setup and boundaries" still apply.
+
 ## Goal
 Implement an evidence-based Improving Stage 4 candidate demonstration: a multi-step, evaluated AI incident-analysis workflow with safe MCP access, deterministic guardrails, explicit human escalation, and full traceability. This is a **local lab**, not a production incident remediation system.
 

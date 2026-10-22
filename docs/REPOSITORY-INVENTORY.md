@@ -1,6 +1,6 @@
 # Repository inventory and integration plan
 
-Scope: read-only inspection of existing repositories under `/Users/memis.cetinkaya/repos` to decide what AIOps Guardian (Stage 4 lab) can reuse. Nothing outside `aiops-guardian/docs/` was modified, and no Vagrant, kubectl, Docker, or server command that changes state was run.
+Scope: read-only inspection of existing repositories under `~/repos` to decide what AIOps Guardian (Stage 4 lab) can reuse. Nothing outside `aiops-guardian/docs/` was modified, and no Vagrant, kubectl, Docker, or server command that changes state was run.
 
 ## Method and limits
 
@@ -146,8 +146,8 @@ Alternative (not recommended): extend `ninjaops-ai` with `describe_pod` and even
    - Validate responses with Pydantic, truncate, and redact before they reach the model.
 3. **Contract test with a fake MCP response**, built from the captured JSON in step 1. Include a case where an unexpected tool appears (must be refused) and one where `current_context` is wrong (must abort).
 4. **Env for the lab**, in `aiops-guardian/.env` (not committed):
-   - `MCP_COMMAND` = `uv` with `MCP_ARGS_JSON` = `["--directory","/Users/memis.cetinkaya/repos/kubernetes-mcp-server","run","kubernetes-mcp"]`
-   - `KUBECONFIG=/Users/memis.cetinkaya/repos/apple-silicon-kubernetes/.cluster/kubeconfig`, `KUBE_CONTEXT=kubernetes-admin@kubernetes`, `ALLOWED_NAMESPACES=stage4-lab`
+   - `MCP_COMMAND` = `uv` with `MCP_ARGS_JSON` = `["--directory","~/repos/kubernetes-mcp-server","run","kubernetes-mcp"]`
+   - `KUBECONFIG=~/repos/apple-silicon-kubernetes/.cluster/kubeconfig`, `KUBE_CONTEXT=kubernetes-admin@kubernetes`, `ALLOWED_NAMESPACES=stage4-lab`
    - The adapter currently passes `env=None` to `StdioServerParameters`, so these must be supplied explicitly. Do not forward the whole environment (it would carry `OPENAI_API_KEY`).
 5. **Read-only RBAC.** The kubeconfig above is cluster-admin. Before any live call, create a service account with `get/list` on pods, pods/log, and events in `stage4-lab` only, and build a separate kubeconfig for it. Applying that RBAC is a cluster change and needs your approval. `ALLOWED_NAMESPACES` is only an application-level guard.
 6. **Bring up the cluster** (needs your approval): `vagrant up` in `apple-silicon-kubernetes`, then check `kubectl --kubeconfig ... get nodes`. Do not run `vagrant destroy`, `--prune`, or provisioning against the other global-status entries.
