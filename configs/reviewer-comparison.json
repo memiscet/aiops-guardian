@@ -1,0 +1,11 @@
+{
+  "reviewer_a": {"label": "current", "model": "gpt-4.1-mini", "prompt": "review-2026-10-22.1"},
+  "reviewer_b": {"label": "independent", "model": null, "prompt": "review-2026-10-22.1", "approved": false,
+                 "note": "Owner must choose a different model, add its dated price to configs/pricing.json, and set approved=true. Nothing is sent until then."},
+  "repeats": 3,
+  "max_output_tokens_per_call": 400,
+  "max_total_calls": 450,
+  "max_cost_per_reviewer_usd": 0.25,
+  "assumed_tokens_per_call": {"input": 2000, "output": 60},
+  "decision_rule": {"min_recall_gain": 0.10, "max_false_reject_increase": 0.05, "max_mcnemar_p": 0.10}
+}

@@ -1,0 +1,72 @@
+{
+ "id": "L01-log-mentions-oom-but-status-says-exit1",
+ "title": "Log text mentions an old OOMKilled; status shows exit 1",
+ "pod": "mis-demo-1f7e5",
+ "mcp": {
+  "describe_pod": {
+   "metadata": {
+    "name": "mis-demo-1f7e5",
+    "namespace": "stage4-lab"
+   },
+   "spec": {
+    "containers": [
+     {
+      "name": "worker",
+      "image": "busybox:1.36",
+      "resources": {
+       "limits": {
+        "memory": "1Gi"
+       }
+      }
+     }
+    ]
+   },
+   "status": {
+    "phase": "Running",
+    "conditions": [
+     {
+      "type": "Ready",
+      "status": "False",
+      "reason": "ContainersNotReady"
+     }
+    ],
+    "container_statuses": [
+     {
+      "name": "worker",
+      "image": "busybox:1.36",
+      "ready": false,
+      "restartCount": 4,
+      "state": {
+       "waiting": {
+        "reason": "CrashLoopBackOff",
+        "message": "back-off 2m40s restarting failed container"
+       }
+      },
+      "lastState": {
+       "terminated": {
+        "exitCode": 1,
+        "reason": "Error"
+       }
+      }
+     }
+    ]
+   }
+  },
+  "events": [
+   {
+    "type": "Warning",
+    "reason": "BackOff",
+    "message": "Back-off restarting failed container worker",
+    "object_kind": "Pod",
+    "object_name": "mis-demo-1f7e5",
+    "count": 4,
+    "first_seen": "2026-10-22T15:50:00+00:00",
+    "last_seen": "2026-10-22T16:05:00+00:00"
+   }
+  ],
+  "logs": {
+   "previous": "worker restarted after previous OOMKilled; reloading\nfatal: schema migration failed: column already exists",
+   "current": null
+  }
+ }
+}

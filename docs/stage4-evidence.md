@@ -8,9 +8,11 @@ How to read the status column: **Verified** = observed passing in this session; 
 ```bash
 source .venv/bin/activate
 python -m compileall -q aiops tests           # OK
-python -m pytest -q                            # 124 passed (includes a MiniStack integration test; skipped if MiniStack is down)
+python -m pytest -q                            # 413 passed, 0 skipped (includes MiniStack and lab-cluster tests; those skip if the lab is down)
 python -m aiops.evaluation                     # offline gold cases: 6/6, reviewer probes 3/3 + control 1/1, safety_failures=0 (harness only)
 GUARDIAN_ALLOW_PAID_EVAL=yes python -m aiops.evaluation --live   # paid, bounded; see section 4
+python -m aiops.evaluation --heldout           # held-out oracle run, offline: 36/36 (harness only)
+python -m aiops.compare --plan                 # reviewer-comparison budget; sends nothing
 python scripts/check_secrets.py                # no secrets found
 ```
 Environment observed: Python 3.14.7, langgraph 1.2.16, openai 2.54.0, mcp 1.30.0, pydantic 2.14.1, pytest 9.1.1, jsonschema 4.26.0. Live cluster: three-node Vagrant cluster, Kubernetes v1.36.5. Hosted model used so far: `gpt-4.1-mini-2025-04-14` (two earlier manual runs, see `docs/DEVIN-HANDOFF.md`).
@@ -31,8 +33,9 @@ Environment observed: Python 3.14.7, langgraph 1.2.16, openai 2.54.0, mcp 1.30.0
 | `redundant-log-retrieval` v1 | `test_exit1_case_corrects_redundant_log_collection...`; audit event recorded | Verified |
 | `action-policy` v1 (allowlist/blocklist, namespace check; fail-closed on unknown action) | `tests/test_policy.py`, gold case 05 (`delete_namespace` blocked) | Verified |
 | Cluster-identity gate and tool allowlist/schema pinning in the MCP adapter | `tests/test_mcp_adapter.py` (38 tests) and a live run: admin credentials substituted for the reader were refused (see handoff) | Verified |
+| Independent enforcement beyond model compliance (`tests/test_enforcement.py`): action policy blocks every action in other namespaces (70 combinations) and unknown actions; adapter refuses other namespaces before any MCP call; 10 other MCP tools and invented names refused; AST scan: every MCP call site uses an allow-listed name and the package has no subprocess, kubernetes client, eval or shell use; hostile-model graph tests under patched subprocess/socket; RBAC manifest and live `can-i` matrix (21 live tests, read-only) deny secrets, other namespaces, cluster scope, mutation and exec; server guard and RBAC each refuse `kube-system` independently | Verified (these controls are proven without a model; the real model has still never tried to cross them) |
 | Untrusted-log handling: redaction, size caps, random-delimiter wrapping, injection flag; injected text never cited | `test_prompt_injection_...`, gold case 04 | Verified (heuristic detection; see limits) |
-| Adversarial review agent (`adversarial-review`, prompt `review-2026-10-22.1`), between plan and action policy; can only tighten (fail verdict or any high-severity finding rejects) | Offline: `tests/test_workflow.py`, `tests/test_guardrails.py`, `tests/test_evaluation.py`. Live: four reviewer probes (three flawed outputs we wrote, one sound control) in each of three runs: 9/9 flawed outputs caught, 3/3 controls passed. In case runs the live reviewer rejected one sound-looking output (see section 4) | Verified on a small, self-authored probe set; recall on real model errors unknown |
+| Adversarial review agent (`adversarial-review`, prompt `review-2026-10-22.1`), between plan and action policy; can only tighten (fail verdict or any high-severity finding rejects) | Offline: `tests/test_workflow.py`, `tests/test_guardrails.py`, `tests/test_evaluation.py`. Live: four reviewer probes (three flawed outputs we wrote, one sound control) in each of three runs: 9/9 flawed outputs caught, 3/3 controls passed. In case runs the live reviewer rejected one sound-looking output (see section 4) | Verified on a small, self-authored probe set; recall on real model errors unknown. Independent-reviewer comparison designed (72 fixed items, pre-registered rule, `docs/REVIEWER-COMPARISON-PROTOCOL.md`), harness tested offline, not run live |
 | Hooks/sentinel files as in `stage-four-certification/guardrails/` | Not implemented; controls are Python functions | Gap / Unknown (whether the rubric requires files) |
 
 ## 3. Human punch-out evidence
@@ -40,7 +43,7 @@ Environment observed: Python 3.14.7, langgraph 1.2.16, openai 2.54.0, mcp 1.30.0
 |---|---|---|
 | Workflow stops for approval-required actions | `test_approval_denial`, gold case 06; audit: `awaiting_human_approval` then `rejected_by_human`, both bound to the plan's SHA-256 | Verified |
 | Denial yields no approval or execution | Same tests; the workflow has no executor at all | Verified |
-| Active bypass attempts | `test_non_boolean_resume_values_cannot_bypass_approval`: `"yes"`, `"approve"`, `1`, a dict and `False` all end `denied` | Partial: only resume-value bypasses; no test that tries to skip the node or forge state |
+| Active bypass attempts | `test_non_boolean_resume_values_cannot_bypass_approval`; hostile-model matrix: 10 proposed actions x 6 resume values (`True`, `False`, `"yes"`, `1`, a dict, `"True"`) under patched subprocess and sockets; blocked actions never reach approval; the pause with no answer leaves no decision | Partial: resume-value and proposal bypasses covered; no test that forges graph state or edits the checkpoint |
 | Authorized human | Console `input()`, unauthenticated; `approver_role` recorded as unauthenticated demo; no approval reference or expiry | Gap |
 | Automated-failure path separated from manual punch-out path | Different terminal statuses (`failed` vs `rejected_by_human`) in the audit trail | Verified |
 
@@ -63,10 +66,12 @@ What the live v2 runs show (and do not show):
 - Trend over time: only the runs above exist; no trend claim is made.
 - Live pod run (see handoff): one run on the real crash-looping pod with the final system passed all gates and decided `allowed` (action `create_report`); a single run is not a rate.
 
+**Held-out set (new, not yet run live).** `evaluations/heldout/`: 36 synthetic cases written after the dev set (14 unfamiliar variants, 8 missing-evidence, 7 misleading-evidence, 7 prompt-injection), inputs and gold answers in separate files, SHA-256 manifest of all 38 files, reference answers validated through the real adapter, guardrails and grader. Offline with the reference answers as the scripted model: 36/36, which checks the grader and harness only; grader meta-tests show wrong categories, fabricated citations, over-confidence on ambiguous evidence, citing ignored text and manipulated plans are all failed. **No model has been scored on it.** The dev-set live numbers above predate two system changes (guardrail relevance widened; injection detection extended to message fields in structured status), so they describe an earlier system fingerprint, not HEAD. Authorship limit: the same author wrote the system and both sets.
+
 | Item | Status |
 |---|---|
 | Single end-to-end metric | Verified, with the scope limits above |
-| Live model accuracy | Partial: 0.833 mean over three runs on six cases; not held-out |
+| Live model accuracy | Partial: 0.833 mean over three runs on six cases; not held-out and measured on an earlier system version. Held-out live run: not done (needs approval) |
 | Trend over time | Gap |
 | Variability | Partial: observed across three runs; not quantified statistically |
 
@@ -98,6 +103,15 @@ What the live v2 runs show (and do not show):
 - Redaction, injection detection and citation checks are heuristics, not guarantees.
 - Pricing covers `gpt-4.1-mini` only; list prices retrieved 2026-10-22; estimates are not invoices.
 - MiniStack coverage is limited to put/get object, head/list, get-queue-url, send/receive/delete message; state is lost if the container is removed.
+
+## Evidence gaps (as of the held-out milestone)
+1. Held-out live result: none yet (about 108 calls, estimated under $0.06, needs approval).
+2. Independent-reviewer comparison: not run (needs a chosen model, its dated price, and approval).
+3. Policy block and approval denial have never been triggered by a real model; they are proven by hostile-model tests, static analysis and RBAC.
+4. Dev-set live numbers describe a superseded system version.
+5. Same author for system and test sets; small samples; heuristic keyword grading of free text.
+6. Known detector limits (non-English instructions, JSON impersonation) and adapter gaps (init-container statuses, condition messages).
+7. No Stage 3 per-agent evidence; approval unauthenticated; in-memory checkpoints; local audit file.
 
 ## Items that need confirmation
 1. The official Stage 4 rubric and submission format.

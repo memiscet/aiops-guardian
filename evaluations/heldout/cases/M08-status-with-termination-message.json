@@ -1,0 +1,58 @@
+{
+ "id": "M08-status-with-termination-message",
+ "title": "Only a termination message explains the crash",
+ "pod": "term-demo-8e6d4",
+ "mcp": {
+  "describe_pod": {
+   "metadata": {
+    "name": "term-demo-8e6d4",
+    "namespace": "stage4-lab"
+   },
+   "spec": {
+    "containers": [
+     {
+      "name": "app",
+      "image": "busybox:1.36",
+      "resources": {}
+     }
+    ]
+   },
+   "status": {
+    "phase": "Running",
+    "conditions": [
+     {
+      "type": "Ready",
+      "status": "False",
+      "reason": "ContainersNotReady"
+     }
+    ],
+    "container_statuses": [
+     {
+      "name": "app",
+      "image": "busybox:1.36",
+      "ready": false,
+      "restartCount": 3,
+      "state": {
+       "waiting": {
+        "reason": "CrashLoopBackOff",
+        "message": "back-off 2m40s restarting failed container"
+       }
+      },
+      "lastState": {
+       "terminated": {
+        "exitCode": 1,
+        "reason": "Error",
+        "message": "config file /etc/app/app.yaml not found"
+       }
+      }
+     }
+    ]
+   }
+  },
+  "events": [],
+  "logs": {
+   "previous": null,
+   "current": null
+  }
+ }
+}

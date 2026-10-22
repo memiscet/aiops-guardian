@@ -1,0 +1,43 @@
+{
+ "id": "M07-node-unreachable",
+ "title": "Pod state Unknown after its node became unreachable",
+ "pod": "node-demo-7d5c3",
+ "mcp": {
+  "describe_pod": {
+   "metadata": {
+    "name": "node-demo-7d5c3",
+    "namespace": "stage4-lab"
+   },
+   "spec": {
+    "containers": []
+   },
+   "status": {
+    "phase": "Unknown",
+    "conditions": [
+     {
+      "type": "Ready",
+      "status": "Unknown",
+      "reason": "NodeLost"
+     }
+    ],
+    "container_statuses": []
+   }
+  },
+  "events": [
+   {
+    "type": "Warning",
+    "reason": "TaintManagerEviction",
+    "message": "Marking for deletion Pod stage4-lab/node-demo-7d5c3 due to node.kubernetes.io/unreachable taint",
+    "object_kind": "Pod",
+    "object_name": "node-demo-7d5c3",
+    "count": 4,
+    "first_seen": "2026-10-22T15:50:00+00:00",
+    "last_seen": "2026-10-22T16:05:00+00:00"
+   }
+  ],
+  "logs": {
+   "previous": null,
+   "current": null
+  }
+ }
+}

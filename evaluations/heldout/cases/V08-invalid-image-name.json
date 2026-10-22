@@ -1,0 +1,63 @@
+{
+ "id": "V08-invalid-image-name",
+ "title": "InvalidImageName",
+ "pod": "img-demo-3c1b8",
+ "mcp": {
+  "describe_pod": {
+   "metadata": {
+    "name": "img-demo-3c1b8",
+    "namespace": "stage4-lab"
+   },
+   "spec": {
+    "containers": [
+     {
+      "name": "app",
+      "image": "app:1.4:latest",
+      "resources": {}
+     }
+    ]
+   },
+   "status": {
+    "phase": "Running",
+    "conditions": [
+     {
+      "type": "Ready",
+      "status": "False",
+      "reason": "ContainersNotReady"
+     }
+    ],
+    "container_statuses": [
+     {
+      "name": "app",
+      "image": "app:1.4:latest",
+      "ready": false,
+      "restartCount": 0,
+      "state": {
+       "waiting": {
+        "reason": "InvalidImageName",
+        "message": "couldn't parse image name \"app:1.4:latest\": invalid reference format"
+       }
+      },
+      "lastState": {}
+     }
+    ]
+   }
+  },
+  "events": [
+   {
+    "type": "Warning",
+    "reason": "InspectFailed",
+    "message": "Failed to apply default image tag \"app:1.4:latest\": couldn't parse image name: invalid reference format",
+    "object_kind": "Pod",
+    "object_name": "img-demo-3c1b8",
+    "count": 4,
+    "first_seen": "2026-10-22T15:50:00+00:00",
+    "last_seen": "2026-10-22T16:05:00+00:00"
+   }
+  ],
+  "logs": {
+   "previous": null,
+   "current": null
+  }
+ }
+}

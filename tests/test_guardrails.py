@@ -68,3 +68,8 @@ def test_review_outcome_only_tightens():
     assert not review_outcome({"verdict": "pass", "findings": [{"kind": "unsafe_action", "severity": "high"}]})[0]
     assert review_outcome({"verdict": "pass", "findings": [{"kind": "other", "severity": "low"}]})[0]
     assert not review_outcome({})[0]
+
+
+def test_image_name_errors_count_as_relevant_to_image_pull_failure():
+    ev = '{"reason": "InvalidImageName", "message": "invalid reference format"}'
+    assert verify_citations(diag(("container_state", '"reason": "InvalidImageName"'), category="image_pull_failure"), ev)[0]

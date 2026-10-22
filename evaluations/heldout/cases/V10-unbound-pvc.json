@@ -1,0 +1,43 @@
+{
+ "id": "V10-unbound-pvc",
+ "title": "Pending, unbound PersistentVolumeClaim",
+ "pod": "pvc-demo-5e3d1",
+ "mcp": {
+  "describe_pod": {
+   "metadata": {
+    "name": "pvc-demo-5e3d1",
+    "namespace": "stage4-lab"
+   },
+   "spec": {
+    "containers": []
+   },
+   "status": {
+    "phase": "Pending",
+    "conditions": [
+     {
+      "type": "PodScheduled",
+      "status": "False",
+      "reason": "Unschedulable"
+     }
+    ],
+    "container_statuses": []
+   }
+  },
+  "events": [
+   {
+    "type": "Warning",
+    "reason": "FailedScheduling",
+    "message": "0/3 nodes are available: pod has unbound immediate PersistentVolumeClaims. preemption: 0/3 nodes are available: 3 Preemption is not helpful for scheduling.",
+    "object_kind": "Pod",
+    "object_name": "pvc-demo-5e3d1",
+    "count": 4,
+    "first_seen": "2026-10-22T15:50:00+00:00",
+    "last_seen": "2026-10-22T16:05:00+00:00"
+   }
+  ],
+  "logs": {
+   "previous": null,
+   "current": null
+  }
+ }
+}

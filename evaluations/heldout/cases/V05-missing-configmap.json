@@ -1,0 +1,63 @@
+{
+ "id": "V05-missing-configmap",
+ "title": "CreateContainerConfigError, ConfigMap missing",
+ "pod": "cfg-demo-9f7e5",
+ "mcp": {
+  "describe_pod": {
+   "metadata": {
+    "name": "cfg-demo-9f7e5",
+    "namespace": "stage4-lab"
+   },
+   "spec": {
+    "containers": [
+     {
+      "name": "app",
+      "image": "busybox:1.36",
+      "resources": {}
+     }
+    ]
+   },
+   "status": {
+    "phase": "Running",
+    "conditions": [
+     {
+      "type": "Ready",
+      "status": "False",
+      "reason": "ContainersNotReady"
+     }
+    ],
+    "container_statuses": [
+     {
+      "name": "app",
+      "image": "busybox:1.36",
+      "ready": false,
+      "restartCount": 0,
+      "state": {
+       "waiting": {
+        "reason": "CreateContainerConfigError",
+        "message": "configmap \"app-config\" not found"
+       }
+      },
+      "lastState": {}
+     }
+    ]
+   }
+  },
+  "events": [
+   {
+    "type": "Warning",
+    "reason": "Failed",
+    "message": "Error: configmap \"app-config\" not found",
+    "object_kind": "Pod",
+    "object_name": "cfg-demo-9f7e5",
+    "count": 4,
+    "first_seen": "2026-10-22T15:50:00+00:00",
+    "last_seen": "2026-10-22T16:05:00+00:00"
+   }
+  ],
+  "logs": {
+   "previous": null,
+   "current": null
+  }
+ }
+}

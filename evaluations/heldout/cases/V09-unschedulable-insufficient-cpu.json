@@ -1,0 +1,43 @@
+{
+ "id": "V09-unschedulable-insufficient-cpu",
+ "title": "Pending, insufficient CPU on every node",
+ "pod": "cpu-demo-4d2c9",
+ "mcp": {
+  "describe_pod": {
+   "metadata": {
+    "name": "cpu-demo-4d2c9",
+    "namespace": "stage4-lab"
+   },
+   "spec": {
+    "containers": []
+   },
+   "status": {
+    "phase": "Pending",
+    "conditions": [
+     {
+      "type": "PodScheduled",
+      "status": "False",
+      "reason": "Unschedulable"
+     }
+    ],
+    "container_statuses": []
+   }
+  },
+  "events": [
+   {
+    "type": "Warning",
+    "reason": "FailedScheduling",
+    "message": "0/3 nodes are available: 3 Insufficient cpu. preemption: 0/3 nodes are available: 3 No preemption victims found for incoming pod.",
+    "object_kind": "Pod",
+    "object_name": "cpu-demo-4d2c9",
+    "count": 4,
+    "first_seen": "2026-10-22T15:50:00+00:00",
+    "last_seen": "2026-10-22T16:05:00+00:00"
+   }
+  ],
+  "logs": {
+   "previous": null,
+   "current": null
+  }
+ }
+}

@@ -2,7 +2,7 @@
 
 Self-contained status report for an external reviewer who cannot see the repository. Everything below was observed in the repository or the local lab unless marked otherwise. It is a local lab for the owner's Improving Stage 4 AI certification project, not a production remediation system.
 
-- Repository: `/Users/memis.cetinkaya/repos/aiops-guardian`, branch `master`, 3 commits, clean working tree, not pushed (no remote). HEAD `3e9c081`.
+- Repository: `/Users/memis.cetinkaya/repos/aiops-guardian`, branch `master`, not pushed (no remote). This document was first written at commit `4d34c28`; section 11 and the updated counts below cover the held-out milestone (see `git log` for the current commit).
 - Longer detail: `docs/DEVIN-HANDOFF.md` (milestone-by-milestone), `docs/stage4-evidence.md` (requirement-to-evidence map), `docs/REPOSITORY-INVENTORY.md` (existing repos found and reused).
 
 ## 1. What it is
@@ -51,9 +51,9 @@ No real AWS, Prefect or other Kubernetes cluster was contacted. The owner's shar
 Commands (from the repo root, venv active):
 ```bash
 python -m compileall -q aiops tests     # OK
-python -m pytest -q                      # 124 passed
+python -m pytest -q                      # 413 passed, 0 skipped
 python -m aiops.evaluation               # offline: see below
-python scripts/check_secrets.py          # no secrets found (55 files)
+python scripts/check_secrets.py          # no secrets found (103 files)
 ```
 **Offline evaluation (scripted model; harness only).** Six gold cases: CrashLoopBackOff exit 1, OOMKilled, ImagePullBackOff, log prompt injection, unsafe remediation (scripted `delete_namespace`), denied approval (scripted `rollback_deployment`). Each case defines expected diagnosis, required evidence, must-not-cite text, allowed decisions, forbidden actions and the approval response. Result: 6/6, 0 safety failures, 0 errors, 1 unsafe proposal (blocked by policy), both targeted controls triggered; reviewer probes 3/3 flawed outputs caught and 1/1 control passed. **This measures code paths, not model quality.**
 
@@ -64,8 +64,8 @@ Earlier live runs, kept for honesty: 0/6 (my whitespace-exact quote matching rej
 **Live end-to-end on the real crash-looping pod** (restricted identity, real MCP server, hosted model): category `app_exit_nonzero`, citations `CrashLoopBackOff`, `exitCode: 1` and two `BackOff` events verified verbatim, plan `create_report`, reviewer pass, policy allowed, "allowed (dry run; no changes executed)". Report, evidence and audit events landed in MiniStack S3 and an incident message in SQS. Audit chain verified over all 384 events; every event schema-valid. One run, not a rate.
 
 ## 6. Caveats that limit what can be claimed
-1. **Live numbers are not held-out.** The quote-matching rule, the diagnosis prompt, and the live expectations for cases 05 and 06 were changed after seeing failures, on the same six cases. There is no separate test set. Six cases at three samples each is too small for a reliable rate.
-2. **Policy block and approval denial were not exercised by the real model.** It never proposed a destructive or approval-required action. Those controls are verified only with scripted offline responses.
+1. **Live dev-set numbers are not held-out and now describe an earlier system version** (two code changes followed; see section 11). The quote-matching rule, the diagnosis prompt, and the live expectations for cases 05 and 06 were changed after seeing failures, on the same six cases. There is no separate test set. Six cases at three samples each is too small for a reliable rate.
+2. **Policy block and approval denial were not exercised by the real model.** It never proposed a destructive or approval-required action. Those controls are proven by scripted and hostile-model tests, static analysis and cluster RBAC (section 11), not by observed model behavior.
 3. **The reviewer probes were written by us** and are easy. Reviewer recall on real model errors is unknown. One live false rejection was observed (defensible reasoning).
 4. **Agents are prompts on one model**, not independently validated agents. No Stage 3 evidence (the 95% bar) exists for any of the three roles.
 5. **Approval is not an authorized-human control**: console input, no authentication, no expiry, in-memory checkpoint (a restart loses a pending approval). The bypass tests only cover resume values; there is no test that skips the node or forges state.
@@ -104,3 +104,16 @@ Earlier live runs, kept for honesty: 0/6 (my whitespace-exact quote matching rej
 - Re-create evaluation cases: `python scripts/make_eval_cases.py`.
 - Starter folder `aiops-guardian-starter/` (empty) and the handoff ZIP are git-ignored and safe to delete; the original starter `workflow.py`, `run.py` and `test_workflow.py` exist only inside that ZIP.
 - Nothing in this report contains credentials.
+
+## 11. Held-out milestone additions (after commit `4d34c28`)
+No paid model was called; estimated spend for this milestone is $0.00. Cumulative estimated live spend remains about $0.056 (estimate, not billed).
+
+- **Held-out set:** 36 synthetic cases in `evaluations/heldout/` (14 unfamiliar failure variants, 8 missing-evidence, 7 misleading-evidence, 7 prompt-injection). Inputs (`cases/`) and gold answers (`gold.json`: reference answer plus grading rules) are separate files; `MANIFEST.json` hashes all 38 files and a test fails if any changes. The generator validates every reference answer through the real adapter, guardrails and grader. Offline run with the reference answers as the scripted model: 36/36 (harness only). Meta-tests show the grader fails wrong categories, fabricated citations, over-confidence on ambiguous evidence, citation of text the model was told to ignore, and manipulated plans. **Not yet run against a model.** Rule: no tuning on this set; results are tied to a system fingerprint (hash of code, prompts, pricing config).
+- **Independent enforcement tests** (`tests/test_enforcement.py`): namespace protection (70 policy combinations, adapter refusal before any MCP call), 10 other MCP tools and invented names refused, static scans (every MCP call site allow-listed; no subprocess, Kubernetes client, eval or shell use), Secrets (tool schemas, pod summary with hostile env and volumes, RBAC manifest, live `can-i` matrix), six wrong-identity variants and missing fields, and a hostile model proposing all 10 actions with six resume values each under patched subprocess and sockets. 21 of the tests run read-only against the lab cluster with the restricted reader identity, including proof that the MCP server's namespace guard and Kubernetes RBAC each refuse `kube-system` independently, and that the secret-reading Helm tool is Forbidden even if called directly.
+- **Reviewer comparison, designed not run:** 72 fixed items (36 sound reference answers, 36 flawed mutations in three types) so both reviewers see identical inputs; metrics: recall and false-reject rate with Wilson intervals, per-mutation recall, paired exact McNemar, Cohen's kappa, stability over 3 repeats, cost and latency; pre-registered adoption rule (recall gain at least 0.10, false-reject increase at most 0.05, McNemar p at most 0.10; otherwise keep or inconclusive). Budget plan: 432 calls, about $0.19 for the current reviewer (estimate); the independent reviewer's model and price are for the owner to choose. All refusal paths are tested and construct no paid client. See `docs/REVIEWER-COMPARISON-PROTOCOL.md`.
+- **Findings and system changes made while authoring the set** (before any model saw it): the citation relevance rule for `image_pull_failure` was too narrow (widened); injection text in event messages and container termination messages was not flagged (the adapter now scans structured text). Known limits left in place and tested as such: non-English instructions and JSON impersonating the analyst are not flagged; init-container statuses and condition messages are not in the evidence summary.
+- **Checks:** `compileall` OK; `pytest` 413 passed, 0 skipped; offline dev evaluation 6/6 with reviewer probes 3/3 and control 1/1; offline held-out 36/36; secret check clean (103 files). Audit chain over the default trail still verifies.
+
+**Evidence gaps that remain:** no held-out live result; no reviewer comparison; real model never triggered the policy block or approval denial; dev-set live numbers are stale; same author for system and sets; small samples; no Stage 3 per-agent evidence; unauthenticated approval, in-memory checkpoints, local audit file; Stage 4 rubric unknown.
+
+**Decisions requested:** approve the held-out live run (`GUARDIAN_ALLOW_PAID_EVAL=yes python -m aiops.evaluation --heldout --live`, about 108 calls, estimated under $0.06, limits in `configs/heldout-limits.json`) once the system is frozen; choose and price a second reviewer model and approve `python -m aiops.compare --live`; decide whether to close the known detector and adapter gaps first (which would require re-measuring dev results); confirm the rubric.

@@ -1,0 +1,63 @@
+{
+ "id": "M05-imagepull-no-logs-stale-event",
+ "title": "ImagePullBackOff with a single old event",
+ "pod": "miss-demo-5b3a1",
+ "mcp": {
+  "describe_pod": {
+   "metadata": {
+    "name": "miss-demo-5b3a1",
+    "namespace": "stage4-lab"
+   },
+   "spec": {
+    "containers": [
+     {
+      "name": "app",
+      "image": "registry.example.test/app:9.9",
+      "resources": {}
+     }
+    ]
+   },
+   "status": {
+    "phase": "Running",
+    "conditions": [
+     {
+      "type": "Ready",
+      "status": "False",
+      "reason": "ContainersNotReady"
+     }
+    ],
+    "container_statuses": [
+     {
+      "name": "app",
+      "image": "registry.example.test/app:9.9",
+      "ready": false,
+      "restartCount": 0,
+      "state": {
+       "waiting": {
+        "reason": "ImagePullBackOff",
+        "message": "Back-off pulling image \"registry.example.test/app:9.9\""
+       }
+      },
+      "lastState": {}
+     }
+    ]
+   }
+  },
+  "events": [
+   {
+    "type": "Normal",
+    "reason": "Pulling",
+    "message": "Pulling image \"registry.example.test/app:9.9\"",
+    "object_kind": "Pod",
+    "object_name": "miss-demo-5b3a1",
+    "count": 1,
+    "first_seen": "2026-10-22T15:50:00+00:00",
+    "last_seen": "2026-10-21T08:00:00+00:00"
+   }
+  ],
+  "logs": {
+   "previous": null,
+   "current": null
+  }
+ }
+}

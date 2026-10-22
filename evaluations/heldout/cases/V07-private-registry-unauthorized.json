@@ -1,0 +1,63 @@
+{
+ "id": "V07-private-registry-unauthorized",
+ "title": "ErrImagePull, registry returns 401",
+ "pod": "reg-demo-2b9a7",
+ "mcp": {
+  "describe_pod": {
+   "metadata": {
+    "name": "reg-demo-2b9a7",
+    "namespace": "stage4-lab"
+   },
+   "spec": {
+    "containers": [
+     {
+      "name": "app",
+      "image": "registry.example.test/team/app:1.4",
+      "resources": {}
+     }
+    ]
+   },
+   "status": {
+    "phase": "Running",
+    "conditions": [
+     {
+      "type": "Ready",
+      "status": "False",
+      "reason": "ContainersNotReady"
+     }
+    ],
+    "container_statuses": [
+     {
+      "name": "app",
+      "image": "registry.example.test/team/app:1.4",
+      "ready": false,
+      "restartCount": 0,
+      "state": {
+       "waiting": {
+        "reason": "ErrImagePull",
+        "message": "failed to pull and unpack image \"registry.example.test/team/app:1.4\": unexpected status: 401 Unauthorized"
+       }
+      },
+      "lastState": {}
+     }
+    ]
+   }
+  },
+  "events": [
+   {
+    "type": "Warning",
+    "reason": "Failed",
+    "message": "Failed to pull image \"registry.example.test/team/app:1.4\": 401 Unauthorized",
+    "object_kind": "Pod",
+    "object_name": "reg-demo-2b9a7",
+    "count": 4,
+    "first_seen": "2026-10-22T15:50:00+00:00",
+    "last_seen": "2026-10-22T16:05:00+00:00"
+   }
+  ],
+  "logs": {
+   "previous": null,
+   "current": null
+  }
+ }
+}

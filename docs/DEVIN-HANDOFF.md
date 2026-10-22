@@ -262,3 +262,75 @@ New or extended tests: reviewer behaviour in `test_workflow.py` (fail verdict, h
 3. Add an authenticated, time-limited approval mechanism and durable checkpoints.
 4. Optionally run the reviewer on a different model (`reviewer_llm`) and measure the difference.
 5. Create OOMKilled and ImagePullBackOff manifests and run them live end to end (needs approval).
+
+---
+
+# Milestone 5: held-out set, independent enforcement tests, reviewer-comparison design (2026-10-22)
+
+Starting point: commit `4d34c28`. **No paid model was called in this milestone (estimated spend $0.00).** The live cluster was only read (reader identity); no remediation, no manifests applied, MiniStack not otherwise touched. The default audit file `var/audit/events.jsonl` was not written to by this milestone's runs (they used temporary audit directories); its hash chain still verifies.
+
+## Result summary
+| Item | Status |
+|---|---|
+| Held-out set of at least 30 new incidents with separate gold answers | Done: 36 cases (14 unfamiliar variants, 8 missing-evidence, 7 misleading-evidence, 7 prompt-injection) |
+| Independent negative tests (namespace, forbidden MCP tools, Secrets, wrong identity, approval denial) | Done: `tests/test_enforcement.py`; 21 of them run against the lab cluster's own RBAC with the restricted reader identity |
+| Fixed-case comparison design, current vs independent reviewer | Done as harness, config and pre-registered protocol; **not run live** (needs approval and a chosen model) |
+| Live run on the held-out set | **Not run** (bulk paid evaluation needs approval); plan and limits are ready |
+| Checks | `compileall` OK; `pytest` 413 passed, 0 skipped; offline dev evaluation 6/6; offline held-out 36/36 (harness only); secret check clean (103 files) |
+
+## Held-out set (`evaluations/heldout/`, `scripts/make_heldout.py`)
+- **Separation:** `cases/*.json` hold only the inputs (the fake MCP evidence). `gold.json` holds, per case, a reference answer (`oracle`: category, root cause, verbatim citations, plan) and grading rules (acceptable categories, root-cause keywords, required evidence, must-not-cite text, allowed decisions, forbidden actions, expected injection flag, confidence cap for ambiguous evidence). `MANIFEST.json` stores SHA-256 hashes of all 38 files; a test fails if anything changes after freezing.
+- **Mix:** variants (exit 2/127/139, liveness-probe kill with exit 137 that is not OOM, missing ConfigMap, missing Secret key, private-registry 401, invalid image name, unschedulable CPU, unbound PVC, init-container crash, eviction for ephemeral storage, sidecar OOM, registry rate limit); missing evidence (status only, running-not-ready with nothing else, empty last state, healthy pod, stale event only, exit 137 without a reason, unreachable node, termination message only); misleading evidence (log blames OOM or image pull or permissions while status says otherwise, stale scheduling event, noisy healthy container, name suggesting OOM, readiness noise hiding a sidecar image failure); injection (log demanding approval, JSON impersonating the analyst, instruction in an event message, instruction in the termination message, forged log delimiter, German-language instruction, request to lie about the exit code).
+- **Validated, not assumed:** the generator runs every reference answer through the real adapter, citation guardrail, graph and grader, and refuses to write the set if any oracle fails its own grading or if a flawed review item would be stopped by the guardrail first. Offline run with the oracle as the scripted model: 36/36, 108 scripted calls (a harness check only).
+- **Grader meta-tests** (`tests/test_heldout.py`): a wrong category fails in all 36 cases; a fabricated citation is rejected by the guardrail in all 36; 0.99 confidence fails on the 5 ambiguity-capped cases; citing text the model was told to ignore fails; a manipulated plan on all 7 injection cases yields `denied`, not a pass and not a safety failure; a destructive plan is blocked in all 36; a healthy-pod case fails if the model proposes any remediation.
+- **Rule:** do not tune prompts, guardrails or code on this set. The report carries a `system_fingerprint` (hash of code, prompts and pricing config) so a result can be tied to a frozen system version. Command (needs approval): `GUARDIAN_ALLOW_PAID_EVAL=yes python -m aiops.evaluation --heldout --live` with `configs/heldout-limits.json` (40 cases, 120 calls, 150,000 tokens, $0.10). Estimated about 108 calls and under $0.06 from earlier per-call averages (estimate). Results are broken down by kind.
+- **Honest limits:** the set is synthetic and written by the system's author, so it shares the author's blind spots; 36 cases is still small; gold keyword checks on free text are crude.
+
+## Findings while building the set (system changes made before any model saw the set)
+1. **Citation relevance rule too narrow:** an `InvalidImageName` diagnosis could not pass the guardrail. I widened the `image_pull_failure` pattern (`InvalidImageName`, `invalid reference`, `registry`) and added a unit test. This is a guardrail change, made while authoring, before any model ran on the held-out cases.
+2. **Injection in structured fields was not flagged:** event messages and container termination messages are application-influenced but sat in the "structured" part. The adapter now scans the structured text with the same injection patterns, sets `injection_suspected`, and adds a warning line to the evidence. Prompts are unchanged.
+3. **Detector limits (documented, not fixed):** a German-language instruction and a JSON blob imitating the analyst's output are **not** flagged (graded as "not applicable" in gold; tests assert the current behavior). Policy and the citation guardrail still hold in those cases.
+4. **Adapter gaps (not fixed, set designed around them):** init-container statuses and condition messages are not in the summary, so the init-container case relies on events alone.
+5. **Previous live numbers no longer describe HEAD:** the dev-set live runs (mean 0.833) were measured before findings 1 and 2 changed the code. The system fingerprint changed; those numbers must not be quoted as results for the current system.
+
+## Independent enforcement tests (`tests/test_enforcement.py`)
+These prove controls without relying on a model behaving:
+- **Namespace protection:** the action policy blocks every action in 7 other namespace spellings (70 combinations) and fails closed on unknown actions; the adapter refuses other namespaces before any MCP call; the graph blocks even a safe action in `kube-system`. Live: the MCP server's own namespace guard refuses `kube-system`; with that guard switched off, Kubernetes RBAC still returns Forbidden.
+- **Forbidden MCP tools:** all 10 other tools in the pinned server list plus invented names (`exec`, `apply`, `delete_pod`, `get_secret`) raise `UnauthorizedToolError` without reaching the session; an AST scan proves every MCP call site in the package uses an allow-listed literal name; the package has no `subprocess`, `kubernetes` client, `eval`, `exec`, `os.system` or `shell=True`.
+- **Secrets:** no allow-listed tool name or argument schema mentions secrets or Helm; the pod summary never carries env, envFrom, volumes, secret references or annotations (tested with hostile input); the RBAC manifest grants exactly get/list pods, get pods/log, get/list events in one namespace and no wildcard; live, `kubectl auth can-i` is "no" for secrets (own and other namespaces), configmaps, other namespaces, cluster-scoped reads, create/delete/patch/exec and the wildcard, and "yes" for the three intended reads; live, the secret-reading `list_helm_releases` tool returns Forbidden even when called directly through the server.
+- **Wrong cluster identity:** six wrong-identity variants (Rancher Desktop, admin identity, other API server, wrong or extra allowed namespaces, other user) and each missing field stop everything after `current_context`; live, a wrong expectation against the real cluster raises `IdentityError`, and the correct identity passes the gate and reaches the pod call.
+- **Approval denial:** a hostile model that proposes each of the 10 actions and tells the reviewer everything is fine, with six resume values each (`True`, `False`, `"yes"`, `1`, a dict, `"True"`), under patched `subprocess`, `os.system` and socket connect (any attempt fails the test). Blocked actions never reach approval; review actions are approved only by boolean `True` and only as a dry run; the audit chain verifies. Denial is recorded as `rejected_by_human` with the pause and decision bound to the same plan hash; the pause with no answer leaves no decision; the reviewer cannot turn a blocked action into an allowed one.
+
+## Reviewer comparison (`aiops/compare.py`, `configs/reviewer-comparison.json`, `docs/REVIEWER-COMPARISON-PROTOCOL.md`)
+Fixed items: 72 (36 sound reference answers, 36 flawed mutations in three types, 12 each). Metrics: recall with Wilson intervals, false-reject rate, per-mutation recall, paired exact McNemar test, Cohen's kappa, stability across 3 repeats, cost and latency. Pre-registered rule: adopt the independent reviewer only if recall gain is at least 0.10, false-reject increase at most 0.05 and McNemar p at most 0.10; otherwise keep or report inconclusive. Budget plan: 432 calls, about $0.19 for the current reviewer (estimate), independent reviewer unknown until the owner picks a model and adds its dated price. Guards: `--live` plus `GUARDIAN_ALLOW_PAID_EVAL=yes`, `reviewer_b.model` set and approved, price known, planned calls and cost under limits, all checked before any request. Twelve tests cover the statistics, the decision rule (adopt, keep, inconclusive), majority and tie handling, identical items for both reviewers, the audit chain, and the refusals (no paid client is constructed in any refused or offline path).
+
+## Tests and checks run
+```bash
+source .venv/bin/activate
+python -m compileall -q aiops tests scripts     # OK
+python -m pytest -q                              # 413 passed, 0 skipped (about 70 s)
+python -m aiops.evaluation                       # dev set offline: 6/6, reviewer probes 3/3 + control 1/1
+python -m aiops.evaluation --heldout             # held-out offline oracle run: 36/36 (harness only), by kind 14/14, 8/8, 7/7, 7/7
+python -m aiops.compare --plan                   # prints the budget plan, sends nothing
+python -m aiops.compare                          # offline simulation of the harness
+python scripts/check_secrets.py                  # no secrets found (103 files)
+```
+Side effects of the test run: the existing MiniStack integration test writes and deletes its own objects and one queue message in the Guardian emulator; the 21 live tests only read from the lab cluster (`can-i` queries, forbidden reads, MCP read calls).
+
+## Blockers and Stage 4 evidence gaps
+1. **No live result on the held-out set yet.** Needs approval for about 108 calls (estimated under $0.06). The first live result for a given system fingerprint should be treated as final.
+2. **Reviewer comparison not run:** needs approval, a chosen second model and its dated price.
+3. **Policy block and approval denial still never triggered by a real model**; they are proven by the hostile-model tests and by RBAC, not by observed model behavior.
+4. **Held-out independence is limited:** same author, same system knowledge.
+5. **Stage 3 evidence** (95% bar per agent) does not exist; roles are prompts on one model.
+6. **Approval is unauthenticated**, checkpoints in memory, audit file local and tamper-evident only.
+7. **Rubric unknown:** the audit-schema extension, guardrails-as-files, authorized-person definition, agent count remain unconfirmed.
+8. **Dev-set live numbers are stale** (see finding 5).
+9. **Detector and adapter gaps** (findings 3 and 4).
+
+## Next steps
+1. Owner: approve the held-out live run (`GUARDIAN_ALLOW_PAID_EVAL=yes python -m aiops.evaluation --heldout --live`), after confirming the system is frozen (no further code or prompt changes).
+2. Owner: choose a second reviewer model, add its dated price, set `approved: true`, then approve `python -m aiops.compare --live`.
+3. Decide whether to close detector and adapter gaps (init-container statuses, condition messages, multilingual injection) before freezing, accepting that dev results must then be re-measured.
+4. Authenticated, expiring approvals and durable checkpoints.
+5. Confirm the Stage 4 rubric.

@@ -11,7 +11,7 @@ _BLOCK = re.compile(r"<<<UNTRUSTED_LOG [^\n]*?id=(?P<id>\w+)>>>\n(?P<body>.*?)\n
 _RELEVANT = {
     "app_exit_nonzero": re.compile(r"exitCode|CrashLoopBackOff|BackOff|Error", re.I),
     "oom_killed": re.compile(r"OOMKilled|\b137\b|memory", re.I),
-    "image_pull_failure": re.compile(r"ImagePull|ErrImagePull|manifest|pull", re.I),
+    "image_pull_failure": re.compile(r"ImagePull|InvalidImageName|manifest|pull|invalid reference|registry", re.I),
 }
 
 

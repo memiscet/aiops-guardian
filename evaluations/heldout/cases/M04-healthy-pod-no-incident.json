@@ -1,0 +1,71 @@
+{
+ "id": "M04-healthy-pod-no-incident",
+ "title": "Healthy pod: nothing to fix",
+ "pod": "ok-demo-4a2f9",
+ "mcp": {
+  "describe_pod": {
+   "metadata": {
+    "name": "ok-demo-4a2f9",
+    "namespace": "stage4-lab"
+   },
+   "spec": {
+    "containers": [
+     {
+      "name": "app",
+      "image": "busybox:1.36",
+      "resources": {}
+     }
+    ]
+   },
+   "status": {
+    "phase": "Running",
+    "conditions": [
+     {
+      "type": "Ready",
+      "status": "True"
+     }
+    ],
+    "container_statuses": [
+     {
+      "name": "app",
+      "image": "busybox:1.36",
+      "ready": true,
+      "restartCount": 0,
+      "state": {
+       "running": {
+        "startedAt": "2026-10-22T16:00:00+00:00"
+       }
+      },
+      "lastState": {}
+     }
+    ]
+   }
+  },
+  "events": [
+   {
+    "type": "Normal",
+    "reason": "Scheduled",
+    "message": "Successfully assigned stage4-lab/ok-demo-4a2f9 to aiops-worker-1",
+    "object_kind": "Pod",
+    "object_name": "ok-demo-4a2f9",
+    "count": 1,
+    "first_seen": "2026-10-22T15:50:00+00:00",
+    "last_seen": "2026-10-22T16:05:00+00:00"
+   },
+   {
+    "type": "Normal",
+    "reason": "Started",
+    "message": "Started container app",
+    "object_kind": "Pod",
+    "object_name": "ok-demo-4a2f9",
+    "count": 1,
+    "first_seen": "2026-10-22T15:50:00+00:00",
+    "last_seen": "2026-10-22T16:05:00+00:00"
+   }
+  ],
+  "logs": {
+   "previous": null,
+   "current": "server started on :8080"
+  }
+ }
+}
