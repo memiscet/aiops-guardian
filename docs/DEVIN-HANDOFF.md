@@ -199,7 +199,7 @@ A read-only live check also ran the updated adapter against the Guardian cluster
 - The pricing table covers `gpt-4.1-mini` only; any other model yields `unknown` cost and, in live mode, stops the budget guard.
 
 ## Baseline commit
-See the final section of this file for the commit hash and checks (added after the commit).
+Commit `3dfec2a` on `master` (52 files, 4464 insertions): "Baseline: AIOps Guardian Stage 4 lab ...". Before committing: `scripts/check_secrets.py` passed on the staged set (52 files), no staged path matched `.env`, kubeconfig, `.cluster/`, join command, `var/`, `*.zip`, `*.jsonl`, `*.pem` or `*.key`, and `pytest` showed 94 passed. The commit was not pushed (no remote is configured here). `requirements.txt` gained an explicit `jsonschema` entry because the tests use it directly. This hash is recorded in a follow-up docs commit.
 
 ## Exact next steps
 1. Owner: rotate the OpenAI key and update `.env` (not `.env.example`).
